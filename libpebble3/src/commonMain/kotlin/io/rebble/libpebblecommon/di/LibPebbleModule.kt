@@ -83,6 +83,7 @@ import io.rebble.libpebblecommon.connection.endpointmanager.FirmwareUpdater
 import io.rebble.libpebblecommon.connection.endpointmanager.LanguagePackInstaller
 import io.rebble.libpebblecommon.connection.endpointmanager.RealFirmwareUpdater
 import io.rebble.libpebblecommon.connection.endpointmanager.RealLanguagePackInstaller
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionHandler
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionManager
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDB
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDbDaos
@@ -316,6 +317,7 @@ fun initKoin(
     proxyTokenProvider: StateFlow<String?>,
     transcriptionProvider: TranscriptionProvider,
     injectedPKJSHttpInterceptors: InjectedPKJSHttpInterceptors,
+    voiceSessionHandlers: List<VoiceSessionHandler> = emptyList(),
 ): Koin {
     val koin = LibPebbleKoinContext.koin
     val libPebbleScope = LibPebbleCoroutineScope(CoroutineName("libpebble3"))
@@ -336,6 +338,7 @@ fun initKoin(
                 single { tokenProvider }
                 single { transcriptionProvider }
                 single { injectedPKJSHttpInterceptors }
+                single { voiceSessionHandlers }
                 single { getRoomDatabase(get()) }
                 singleOf(::StaticLockerPBWCache) bind LockerPBWCache::class
                 singleOf(::PebbleDeviceFactory)
@@ -565,7 +568,15 @@ fun initKoin(
                             scope = get(),
                         )
                     }
-                    scopedOf(::VoiceSessionManager)
+                    scoped {
+                        VoiceSessionManager(
+                            voiceService = get(),
+                            audioStreamService = get(),
+                            watchScope = get(),
+                            transcriptionProvider = get(),
+                            voiceSessionHandlers = get(),
+                        )
+                    }
 
 
                     // TODO we ccoouulllddd scope this further to inject more things that we still

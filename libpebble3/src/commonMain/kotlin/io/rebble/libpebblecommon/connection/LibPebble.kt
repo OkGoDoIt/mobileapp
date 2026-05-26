@@ -37,6 +37,7 @@ import io.rebble.libpebblecommon.database.entity.TimelineNotification
 import io.rebble.libpebblecommon.services.DailySleep
 import io.rebble.libpebblecommon.database.entity.TimelinePin
 import io.rebble.libpebblecommon.di.LibPebbleCoroutineScope
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionHandler
 import io.rebble.libpebblecommon.di.initKoin
 import io.rebble.libpebblecommon.health.Health
 import io.rebble.libpebblecommon.health.HealthDebugStats
@@ -508,8 +509,18 @@ class LibPebble3(
             proxyTokenProvider: StateFlow<String?>,
             transcriptionProvider: TranscriptionProvider,
             injectedPKJSHttpInterceptors: InjectedPKJSHttpInterceptors = InjectedPKJSHttpInterceptors(emptyList()),
+            voiceSessionHandlers: List<VoiceSessionHandler> = emptyList(),
         ): LibPebble {
-            koin = initKoin(defaultConfig, webServices, appContext, tokenProvider, proxyTokenProvider, transcriptionProvider, injectedPKJSHttpInterceptors)
+            koin = initKoin(
+                defaultConfig,
+                webServices,
+                appContext,
+                tokenProvider,
+                proxyTokenProvider,
+                transcriptionProvider,
+                injectedPKJSHttpInterceptors,
+                voiceSessionHandlers,
+            )
             val libPebble = koin.get<LibPebble>()
             return libPebble
         }

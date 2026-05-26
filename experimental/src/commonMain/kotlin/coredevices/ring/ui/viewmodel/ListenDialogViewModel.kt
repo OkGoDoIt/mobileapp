@@ -8,10 +8,12 @@ import coredevices.ring.agent.ChatMode
 import coredevices.ring.agent.McpSessionFactory
 import coredevices.ring.database.room.repository.McpSandboxRepository
 import coredevices.ring.database.room.repository.RecordingRepository
-import coredevices.ring.service.recordings.RecordingProcessingQueue
 import coredevices.ring.service.recordings.RecordingProcessor
 import coredevices.ring.service.recordings.button.RecordingOperationFactory
 import coredevices.ring.storage.RecordingStorage
+import coredevices.util.recording.RecordingIngress
+import coredevices.util.recording.RecordingIngressMetadata
+import coredevices.util.recording.RecordingSourceType
 import coredevices.ring.util.AudioRecorder
 import coredevices.util.Permission
 import coredevices.util.PermissionRequester
@@ -59,7 +61,7 @@ class ListenDialogViewModel(private val dismiss: () -> Unit): ViewModel(), KoinC
     private val recordingRepository: RecordingRepository by inject()
     private val mcpSessionFactory: McpSessionFactory by inject()
     private val mcpSandboxRepository: McpSandboxRepository by inject()
-    private val recordingProcessingQueue: RecordingProcessingQueue by inject()
+    private val recordingIngress: RecordingIngress by inject()
 
     fun beginManualRecording() {
         //TODO: Replace with recording operation pattern once we have a way to get the state updates out
@@ -74,11 +76,19 @@ class ListenDialogViewModel(private val dismiss: () -> Unit): ViewModel(), KoinC
                 return@launch
             }
             val fileName = "manual_recording-${Uuid.random()}"
+            val metadata = RecordingIngressMetadata(
+                sourceType = RecordingSourceType.PhoneMic,
+            )
             currentRecorder = get<AudioRecorder>()
             currentRecorder!!.use { recorder ->
                 onRecordingStarted()
                 val source = recorder.startRecording()
-                val sink = recordingStorage.openRecordingSink(fileName, recorder.sampleRate, "audio/raw")
+                val sink = recordingIngress.openRawPcmSink(
+                    fileName,
+                    recorder.sampleRate,
+                    "audio/raw",
+                    metadata,
+                )
                 withContext(Dispatchers.IO) {
                     source.use {
                         sink.use {
@@ -86,7 +96,10 @@ class ListenDialogViewModel(private val dismiss: () -> Unit): ViewModel(), KoinC
                         }
                     }
                 }
-                recordingProcessingQueue.queueLocalAudioProcessing(fileId = fileName)
+                recordingIngress.finalizeLocalRecording(
+                    fileId = fileName,
+                    metadata = metadata,
+                )
                 longLivingScope.launch(Dispatchers.IO) { // Persist recording in background, not using viewModelScope to avoid cancellation when viewmodel is cleared
                     recordingStorage.persistRecording(fileName)
                     logger.i { "Persisted recording $fileName" }

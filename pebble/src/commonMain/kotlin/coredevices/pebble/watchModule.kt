@@ -23,6 +23,8 @@ import coredevices.pebble.services.AppstoreCache
 import coredevices.pebble.services.AppstoreService
 import coredevices.pebble.services.AppstoreSourceInitializer
 import coredevices.pebble.services.CactusTranscription
+import coredevices.pebble.services.WatchIndexMemoVoiceSessionHandler
+import coredevices.util.recording.RecordingIngress
 import coredevices.pebble.services.LanguagePackRepository
 import coredevices.pebble.services.Memfault
 import coredevices.pebble.services.AnalyticsHeartbeatQueue
@@ -109,6 +111,9 @@ val watchModule = module {
                 .stateIn(GlobalScope, started = SharingStarted.Lazily, initialValue = null),
             get(),
             get(),
+            voiceSessionHandlers = listOf(
+                WatchIndexMemoVoiceSessionHandler(getOrNull<RecordingIngress>()),
+            ),
         )
     } binds arrayOf(LibPebble3::class, NotificationApps::class, SystemGeolocation::class)
 

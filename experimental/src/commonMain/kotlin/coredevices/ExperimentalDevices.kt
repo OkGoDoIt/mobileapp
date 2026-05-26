@@ -127,9 +127,9 @@ class ExperimentalDevices(
 
     @Composable
     fun IndexScreen(coreNav: CoreNav, topBarParams: TopBarParams) {
+        val recordingIngress = koinInject<coredevices.util.recording.RecordingIngress>()
         val recordingQueue = koinInject<RecordingProcessingQueue>()
         val recordingRepo = koinInject<RecordingRepository>()
-        val recordingStorage = koinInject<RecordingStorage>()
         val prefs = koinInject<Preferences>()
         val isDebugEnabled by prefs.debugDetailsEnabled.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
@@ -137,17 +137,24 @@ class ExperimentalDevices(
             it?.firstOrNull()?.let { file ->
                 val id = "imported-${Clock.System.now()}"
                 scope.launch(Dispatchers.IO) {
-                    recordingStorage.openRecordingSink(
-                        id = id,
+                    val metadata = coredevices.util.recording.RecordingIngressMetadata(
+                        sourceType = coredevices.util.recording.RecordingSourceType.PhoneMic,
+                    )
+                    recordingIngress.openRawPcmSink(
+                        fileId = id,
                         sampleRate = 16000,
                         mimeType = "audio/wav",
+                        metadata = metadata,
                     ).buffered().use { sink ->
                         file.source.buffered().use {
                             it.skip(44) // Skip WAV header
                             it.transferTo(sink)
                         }
                     }
-                    recordingQueue.queueLocalAudioProcessing(id)
+                    recordingIngress.finalizeLocalRecording(
+                        fileId = id,
+                        metadata = metadata,
+                    )
                     topBarParams.showSnackbar("Imported WAV file")
                 }
             }

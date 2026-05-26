@@ -8,6 +8,7 @@ import io.rebble.libpebblecommon.packets.VoiceAttribute
 import io.rebble.libpebblecommon.packets.VoiceAttributeType
 import io.rebble.libpebblecommon.util.DataBuffer
 import io.rebble.libpebblecommon.voice.VoiceEncoderInfo
+import io.rebble.libpebblecommon.voice.VoiceSessionIntent
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlin.uuid.Uuid
@@ -28,13 +29,22 @@ class VoiceService(private val protocolHandler: PebbleProtocolHandler) : Protoco
             } else {
                 Uuid.NIL
             }
+            val sessionIntentData = it.attributes.firstOrNull { attr ->
+                attr.id.get() == VoiceAttributeType.SessionIntent.value
+            }?.content?.get()
+            val sessionIntent = if (sessionIntentData != null && sessionIntentData.isNotEmpty()) {
+                VoiceSessionIntent.fromWireValue(sessionIntentData[0])
+            } else {
+                VoiceSessionIntent.Default
+            }
             SessionSetupRequest(
                 appUuid = uuid,
                 sessionId = it.sessionId.get().toInt(),
                 sessionType = SessionType.entries.first {
                         type -> type.value == it.sessionType.get()
                 },
-                encoderInfo = VoiceEncoderInfo.fromProtocol(it.attributes)
+                encoderInfo = VoiceEncoderInfo.fromProtocol(it.attributes),
+                sessionIntent = sessionIntent,
             )
         }
 
@@ -47,5 +57,6 @@ class VoiceService(private val protocolHandler: PebbleProtocolHandler) : Protoco
         val sessionId: Int,
         val sessionType: SessionType,
         val encoderInfo: VoiceEncoderInfo?,
+        val sessionIntent: VoiceSessionIntent = VoiceSessionIntent.Default,
     )
 }

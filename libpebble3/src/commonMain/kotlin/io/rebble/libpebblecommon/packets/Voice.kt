@@ -51,6 +51,7 @@ enum class VoiceAttributeType(val value: UByte) {
     SpeexEncoderInfo(0x01u),
     Transcription(0x02u),
     AppUuid(0x03u),
+    SessionIntent(0x06u),
 }
 
 open class VoiceAttribute(id: UByte = 0u, content: StructMappable? = null) : StructMappable() {
@@ -83,6 +84,10 @@ open class VoiceAttribute(id: UByte = 0u, content: StructMappable? = null) : Str
 
     class AppUuid : StructMappable() {
         val uuid = SUUID(m)
+    }
+
+    class SessionIntent(intent: UByte = 0u) : StructMappable() {
+        val intent = SUByte(m, intent)
     }
 }
 

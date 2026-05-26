@@ -31,8 +31,9 @@ import coredevices.libindex.database.repository.RingTransferRepository
 import coredevices.pebble.ui.TopBarParams
 import coredevices.ring.service.RingEvent
 import coredevices.ring.service.RingSync
-import coredevices.ring.service.recordings.RecordingProcessingQueue
-import coredevices.ring.storage.RecordingStorage
+import coredevices.util.recording.RecordingIngress
+import coredevices.util.recording.RecordingIngressMetadata
+import coredevices.util.recording.RecordingSourceType
 import coredevices.ring.ui.components.chat.ChatInput
 import coredevices.ring.ui.components.feed.FeedList
 import coredevices.ring.ui.components.feed.ProgressChip
@@ -67,8 +68,7 @@ fun FeedTabContents(
 ) {
     val scope = rememberCoroutineScope()
     val koin = getKoin()
-    val recordingStorage = koinInject<RecordingStorage>()
-    val recordingQueue = koinInject<RecordingProcessingQueue>()
+    val recordingIngress = koinInject<RecordingIngress>()
     val permissionRequester = koinInject<PermissionRequester>()
     var isRecording by remember { mutableStateOf(false) }
     var recordingJob by remember { mutableStateOf<Job?>(null) }
@@ -92,10 +92,19 @@ fun FeedTabContents(
             currentRecorder = recorder
             isRecording = true
             logger.i { "Started recording: $fileId" }
+            val metadata = RecordingIngressMetadata(
+                sourceType = RecordingSourceType.PhoneMic,
+                startedAt = kotlin.time.Clock.System.now(),
+            )
             try {
                 recorder.use { rec ->
                     val source = rec.startRecording()
-                    val sink = recordingStorage.openRecordingSink(fileId, rec.sampleRate, "audio/raw")
+                    val sink = recordingIngress.openRawPcmSink(
+                        fileId,
+                        rec.sampleRate,
+                        "audio/raw",
+                        metadata,
+                    )
                     withContext(Dispatchers.IO) {
                         source.use {
                             sink.use {
@@ -120,20 +129,15 @@ fun FeedTabContents(
             currentRecorder?.stopRecording()
             recordingJob?.join()
             logger.i { "Stopped recording, saving clean copy and queueing: $fileId" }
-            // Save original as -clean before preprocessing overwrites the raw file
-            // (same pattern as Ring recordings in RingSync)
             withContext(Dispatchers.IO) {
-                val (source, info) = recordingStorage.openRecordingSource(fileId)
-                val cleanSink = recordingStorage.openCleanRecordingSink(
-                    fileId, info.cachedMetadata.sampleRate, info.cachedMetadata.mimeType
+                recordingIngress.finalizeLocalRecording(
+                    fileId = fileId,
+                    metadata = RecordingIngressMetadata(
+                        sourceType = RecordingSourceType.PhoneMic,
+                        endedAt = kotlin.time.Clock.System.now(),
+                    ),
                 )
-                source.use { src ->
-                    cleanSink.buffered().use { dst ->
-                        src.transferTo(dst)
-                    }
-                }
             }
-            recordingQueue.queueLocalAudioProcessing(fileId = fileId)
             currentFileId = null
         }
     }

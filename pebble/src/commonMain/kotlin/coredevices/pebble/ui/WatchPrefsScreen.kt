@@ -18,6 +18,7 @@ import coredevices.ui.ConfirmDialog
 import io.rebble.libpebblecommon.SystemAppIDs.AIRPLANE_MODE_UUID
 import io.rebble.libpebblecommon.SystemAppIDs.BACKLIGHT_UUID
 import io.rebble.libpebblecommon.SystemAppIDs.HEALTH_APP_UUID
+import io.rebble.libpebblecommon.SystemAppIDs.INDEX_MEMO_UUID
 import io.rebble.libpebblecommon.SystemAppIDs.MOTION_BACKLIGHT_UUID
 import io.rebble.libpebblecommon.SystemAppIDs.QUIET_TIME_TOGGLE_UUID
 import io.rebble.libpebblecommon.SystemAppIDs.TIMELINE_FUTURE_UUID
@@ -268,6 +269,7 @@ private fun quickLaunchOptions(libPebble: LibPebble): List<QuickLaunchOption> {
     }.collectAsState(emptyList())
     return remember(installedApps) {
         listOf(QuickLaunchOption(null, "None")) +
+                QuickLaunchOption(INDEX_MEMO_UUID, "Index Memo") +
                 QuickLaunchOption(QUIET_TIME_TOGGLE_UUID, "Quiet Time") +
                 QuickLaunchOption(BACKLIGHT_UUID, "Backlight") +
                 QuickLaunchOption(MOTION_BACKLIGHT_UUID, "Backlight") +
