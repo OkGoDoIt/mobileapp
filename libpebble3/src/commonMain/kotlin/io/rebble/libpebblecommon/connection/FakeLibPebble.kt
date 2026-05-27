@@ -11,6 +11,8 @@ import io.rebble.libpebblecommon.connection.bt.BluetoothState
 import io.rebble.libpebblecommon.connection.endpointmanager.FirmwareUpdater
 import io.rebble.libpebblecommon.connection.endpointmanager.InstalledLanguagePack
 import io.rebble.libpebblecommon.connection.endpointmanager.LanguagePackInstallState
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStatus
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamState
 import io.rebble.libpebblecommon.connection.endpointmanager.musiccontrol.MusicTrack
 import io.rebble.libpebblecommon.connection.endpointmanager.timeline.CustomTimelineActionHandler
 import io.rebble.libpebblecommon.database.asMillisecond
@@ -705,6 +707,10 @@ class FakeConnectedDevice(
     override val installedLanguagePack: InstalledLanguagePack? = null
 
     override suspend fun requestHealthData(fullSync: Boolean): Boolean = true
+    override val backgroundAudio: BackgroundAudioStatus = object : BackgroundAudioStatus {
+        override val state: StateFlow<BackgroundAudioStreamState> =
+            MutableStateFlow(BackgroundAudioStreamState.Idle)
+    }
 }
 
 class FakeConnectedDeviceInRecovery(

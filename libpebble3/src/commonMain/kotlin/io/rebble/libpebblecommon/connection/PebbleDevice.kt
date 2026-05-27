@@ -116,7 +116,8 @@ sealed interface ConnectedPebbleDevice :
     ConnectedPebble.CompanionAppControl,
     ConnectedPebble.Screenshot,
     ConnectedPebble.Language,
-    ConnectedPebble.Health
+    ConnectedPebble.Health,
+    ConnectedPebble.BackgroundAudio
 
 /**
  * Put all specific functionality here, rather than directly in [ConnectedPebbleDevice].
@@ -232,6 +233,10 @@ object ConnectedPebble {
         suspend fun requestHealthData(fullSync: Boolean): Boolean
     }
 
+    interface BackgroundAudio {
+        val backgroundAudio: BackgroundAudioStatus
+    }
+
     class Services(
         val debug: Debug,
         val appRunState: AppRunState,
@@ -248,8 +253,8 @@ object ConnectedPebble {
         val screenshot: Screenshot,
         val language: LanguageInstall,
         val health: Health,
-        val backgroundAudio: BackgroundAudioStatus,
-    )
+        override val backgroundAudio: BackgroundAudioStatus,
+    ) : BackgroundAudio
 
     class PrfServices(
         val firmware: FirmwareUpdater,

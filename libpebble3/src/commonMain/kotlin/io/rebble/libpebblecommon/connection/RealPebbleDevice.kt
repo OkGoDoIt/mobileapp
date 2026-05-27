@@ -264,7 +264,8 @@ internal class RealConnectedPebbleDevice(
     ConnectedPebble.DevConnection by services.devConnection,
     ConnectedPebble.Screenshot by services.screenshot,
     ConnectedPebble.LanguageInstall by services.language,
-    ConnectedPebble.Health by services.health {
+    ConnectedPebble.Health by services.health,
+    ConnectedPebble.BackgroundAudio by services {
 
     override fun toString(): String =
         "ConnectedPebbleDevice: $knownDevice $watchInfo batteryLevel=$batteryLevel firmwareUpdateState=$firmwareUpdateState firmwareUpdateAvailable=$firmwareUpdateAvailable runningApp=${services.appRunState.runningApp.value}"

@@ -112,6 +112,9 @@ object PebbleNavBarRoutes {
 
     @Serializable
     data class WatchSettingsCategoryRoute(val section: String, val topLevelType: String) : NavBarRoute
+
+    @Serializable
+    data object BackgroundAudioRoute : NavBarRoute
 }
 
 inline fun <reified T : Any> NavGraphBuilder.composableWithAnimations(
@@ -249,6 +252,9 @@ fun NavGraphBuilder.addNavBarRoutes(
     }
     composable<PebbleNavBarRoutes.OfflineModelsRoute> {
         ModelManagementScreen(nav, topBarParams)
+    }
+    composable<PebbleNavBarRoutes.BackgroundAudioRoute> {
+        BackgroundAudioScreen(nav, topBarParams)
     }
     composableWithAnimations<PebbleNavBarRoutes.WatchSettingsCategoryRoute>(viewModel) {
         val route: PebbleNavBarRoutes.WatchSettingsCategoryRoute = it.toRoute()

@@ -1401,6 +1401,16 @@ fun rememberSettingsItemsState(navBarNav: NavBarNav?, snackbarDisplay: SnackbarD
                     section = Section.Speech,
                     action = { showSpokenLanguageDialog = true },
                 ),
+                navBarNav?.let { nav -> basicSettingsActionItem(
+                    title = "Background Audio",
+                    description = "Audio log status, storage, and transcription diagnostics",
+                    keywords = "lifelog audio background transcription diagnostics storage",
+                    topLevelType = TopLevelType.Watch,
+                    section = Section.Speech,
+                    action = {
+                        nav.navigateTo(PebbleNavBarRoutes.BackgroundAudioRoute)
+                    },
+                ) },
                 basicSettingsToggleItem(
                     title = "Ignore other Pebble apps",
                     description = "Allow connection even when there are other Pebble apps installed on this phone. Warning: this will likely make the connection unreliable if you are using BLE! We don't recommend enabling this",

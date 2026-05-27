@@ -28,6 +28,7 @@ import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordi
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioScope
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioRetentionManager
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioRetentionPolicy
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioRepository
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioSegmentStore
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioTranscriptionPolicy
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioTranscriptionTaskRepository
@@ -49,6 +50,7 @@ import coredevices.pebble.services.RealAppstoreCache
 import coredevices.pebble.services.RealPebbleWebServices
 import coredevices.pebble.ui.AppStoreCollectionScreenViewModel
 import coredevices.pebble.ui.AppstoreSettingsScreenViewModel
+import coredevices.pebble.ui.BackgroundAudioViewModel
 import coredevices.pebble.ui.ContactsViewModel
 import coredevices.pebble.ui.LockerAppViewModel
 import coredevices.pebble.ui.LockerViewModel
@@ -155,6 +157,7 @@ val watchModule = module {
     single { BackgroundAudioSegmentStore(json = get()) }
     single { BackgroundAudioRetentionPolicy() }
     singleOf(::BackgroundAudioRetentionManager)
+    singleOf(::BackgroundAudioRepository)
     single { BackgroundAudioTranscriptionTaskRepository(json = get()) }
     single { BackgroundAudioTranscriptionPolicy() }
     single { BackgroundAudioScope(CoroutineScope(Dispatchers.IO + SupervisorJob())) }
@@ -276,6 +279,7 @@ val watchModule = module {
         )
     }
     viewModelOf(::ModelManagementScreenViewModel)
+    viewModelOf(::BackgroundAudioViewModel)
     viewModelOf(::HealthViewModel)
 
     single { SearchClient(appId = "7683OW76EQ", apiKey = "252f4938082b8693a8a9fc0157d1d24f") }
