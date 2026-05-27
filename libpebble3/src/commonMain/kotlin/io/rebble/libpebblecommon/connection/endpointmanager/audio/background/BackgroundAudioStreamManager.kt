@@ -25,6 +25,7 @@ class BackgroundAudioStreamManager(
     private var watchInfo: WatchInfo? = null
     private var activeConfig: BackgroundAudioStreamConfig? = null
     private var lastReceivedSequence: UInt? = null
+    private var lastReceivedSampleIndex: ULong? = null
 
     private val _state = MutableStateFlow(BackgroundAudioStreamState.Idle)
     val state = _state.asStateFlow()
@@ -32,7 +33,7 @@ class BackgroundAudioStreamManager(
     fun init(watchInfo: WatchInfo) {
         this.watchInfo = watchInfo
         if (!isSupported(watchInfo)) {
-            _state.value = BackgroundAudioStreamState.UnsupportedCodec
+            _state.value = BackgroundAudioStreamState.UnsupportedWatch
             return
         }
         audioStreamService.inboundMessages
@@ -81,6 +82,7 @@ class BackgroundAudioStreamManager(
         }
         activeConfig = config
         lastReceivedSequence = null
+        lastReceivedSampleIndex = null
         _state.value = BackgroundAudioStreamState.Receiving
         handler.onStreamStarted(config)
     }
@@ -98,6 +100,8 @@ class BackgroundAudioStreamManager(
         val firstSequence = packet.firstSequence.get()
         detectSequenceGap(config.streamId, firstSequence)
         lastReceivedSequence = firstSequence + frames.size.toUInt() - 1u
+        lastReceivedSampleIndex = packet.firstSampleIndex.get() +
+            ((frames.size - 1).toULong() * config.frameSamples.toULong())
         handler.onFrameBatch(
             BackgroundAudioFrameBatch(
                 streamId = config.streamId,
@@ -156,6 +160,7 @@ class BackgroundAudioStreamManager(
         )
         activeConfig = null
         lastReceivedSequence = null
+        lastReceivedSampleIndex = null
         _state.value = BackgroundAudioStreamState.Idle
     }
 
@@ -165,14 +170,30 @@ class BackgroundAudioStreamManager(
                 streamId = streamId,
                 highestContiguousSequencePersisted = highestSequence,
                 persistedSampleIndex = sampleIndex,
+                receiverFlags = (handler as? BackgroundAudioReceiverHealthSource)?.receiverFlags ?: 0u,
+                freeStorageHintKb = (handler as? BackgroundAudioReceiverHealthSource)?.freeStorageHintKb ?: 0u,
             )
             audioStreamService.sendBackground(checkpoint)
         }
     }
 
-    fun onDisconnected() {
-        if (activeConfig != null) {
-            _state.value = BackgroundAudioStreamState.PausedDisconnected
+    fun onDisconnected(reason: String = "transport") {
+        val config = activeConfig ?: return
+        val sequence = lastReceivedSequence
+        val sampleIndex = lastReceivedSampleIndex
+        activeConfig = null
+        lastReceivedSequence = null
+        lastReceivedSampleIndex = null
+        _state.value = BackgroundAudioStreamState.PausedDisconnected
+        watchScope.launch {
+            handler.onStreamInterrupted(
+                BackgroundAudioInterruption(
+                    streamId = config.streamId,
+                    reason = reason,
+                    lastReceivedSequence = sequence,
+                    lastReceivedSampleIndex = sampleIndex,
+                ),
+            )
         }
     }
 }

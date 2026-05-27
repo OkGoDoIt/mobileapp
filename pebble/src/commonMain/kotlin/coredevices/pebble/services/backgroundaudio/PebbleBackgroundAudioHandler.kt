@@ -5,6 +5,7 @@ import coredevices.pebble.services.PebbleSpeexFrameDecoder
 import coredevices.pebble.services.SpeexFrameDecoder
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioFrameBatch
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioGap
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioInterruption
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStopSummary
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamConfig
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioCheckpointSource
@@ -18,6 +19,7 @@ import io.rebble.libpebblecommon.voice.VoiceEncoderInfo
 class PebbleBackgroundAudioHandler(
     private val watchIdentifier: String,
     private val segmentStore: BackgroundAudioSegmentStore = BackgroundAudioSegmentStore(),
+    private val transcriptionCoordinator: ContinuousTranscriptionCoordinator? = null,
     private val speexDecoderFactory: (VoiceEncoderInfo.Speex) -> SpeexFrameDecoder =
         { PebbleSpeexFrameDecoder(it) },
 ) : BackgroundAudioStreamHandler, BackgroundAudioCheckpointSource {
@@ -38,7 +40,7 @@ class PebbleBackgroundAudioHandler(
     }
 
     override suspend fun onFrameBatch(batch: BackgroundAudioFrameBatch) {
-        writer?.writeBatch(batch)
+        writer?.writeBatch(batch)?.forEach { enqueueClosedSegment(it) }
     }
 
     override suspend fun onGap(gap: BackgroundAudioGap) {
@@ -47,9 +49,15 @@ class PebbleBackgroundAudioHandler(
     }
 
     override suspend fun onStreamStopped(summary: BackgroundAudioStopSummary) {
-        writer?.finishStream()
+        writer?.finishStream(SegmentClosedReason.StreamStopped)?.let { enqueueClosedSegment(it) }
         writer = null
         logger.i { "Background stream stopped id=${summary.streamId}" }
+    }
+
+    override suspend fun onStreamInterrupted(interruption: BackgroundAudioInterruption) {
+        writer?.finishStream(SegmentClosedReason.Disconnected)?.let { enqueueClosedSegment(it) }
+        writer = null
+        logger.w { "Background stream interrupted id=${interruption.streamId} reason=${interruption.reason}" }
     }
 
     override val lastPersistedSequence: UInt
@@ -57,4 +65,12 @@ class PebbleBackgroundAudioHandler(
 
     override val lastPersistedSampleIndex: ULong
         get() = writer?.lastPersistedSampleIndex ?: 0u
+
+    private suspend fun enqueueClosedSegment(metadata: BackgroundAudioSegmentMetadata) {
+        try {
+            transcriptionCoordinator?.enqueueClosedSegment(metadata)
+        } catch (e: Exception) {
+            logger.w(e) { "Failed to enqueue background segment ${metadata.segmentId}" }
+        }
+    }
 }

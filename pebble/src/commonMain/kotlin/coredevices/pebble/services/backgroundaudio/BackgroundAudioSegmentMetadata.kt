@@ -17,7 +17,27 @@ enum class TranscriptionStatus {
     Disabled,
     InProgress,
     Complete,
+    NoSpeech,
+    Retrying,
     Failed,
+}
+
+@Serializable
+enum class SegmentClosedReason {
+    DurationRotation,
+    SizeRotation,
+    StreamStopped,
+    Disconnected,
+    CodecChanged,
+    StoragePressure,
+    Error,
+}
+
+@Serializable
+enum class RetentionClass {
+    Standard,
+    Preserve,
+    DeleteAfterTranscription,
 }
 
 @Serializable
@@ -40,7 +60,16 @@ data class BackgroundAudioSegmentMetadata(
     val status: SegmentStatus = SegmentStatus.Open,
     val gapCount: Int = 0,
     val transcriptionStatus: TranscriptionStatus = TranscriptionStatus.Pending,
+    val transcriptionAttemptCount: Int = 0,
+    val transcriptionUpdatedAtEpochMs: Long? = null,
+    val transcriptionError: String? = null,
+    val transcriptPath: String? = null,
+    val bytesWritten: Long = 0,
+    val closedReason: SegmentClosedReason? = null,
+    val retentionClass: RetentionClass = RetentionClass.Standard,
 ) {
     val startedAt: Instant get() = Instant.fromEpochMilliseconds(startedAtEpochMs)
     val endedAt: Instant? get() = endedAtEpochMs?.let { Instant.fromEpochMilliseconds(it) }
+    val transcriptionUpdatedAt: Instant?
+        get() = transcriptionUpdatedAtEpochMs?.let { Instant.fromEpochMilliseconds(it) }
 }

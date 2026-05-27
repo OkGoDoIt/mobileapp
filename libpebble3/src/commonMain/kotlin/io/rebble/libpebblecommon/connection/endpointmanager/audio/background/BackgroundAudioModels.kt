@@ -39,10 +39,20 @@ data class BackgroundAudioStopSummary(
     val finalSampleIndex: ULong,
 )
 
+data class BackgroundAudioInterruption(
+    val streamId: UInt,
+    val reason: String,
+    val lastReceivedSequence: UInt?,
+    val lastReceivedSampleIndex: ULong?,
+)
+
 enum class BackgroundAudioStreamState {
     Idle,
     Receiving,
     PausedDisconnected,
+    UnsupportedWatch,
     UnsupportedCodec,
+    PhoneCapabilityDisabled,
+    LowStoragePaused,
     Error,
 }

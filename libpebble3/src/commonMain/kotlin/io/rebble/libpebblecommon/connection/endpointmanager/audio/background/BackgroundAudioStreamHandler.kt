@@ -12,6 +12,8 @@ interface BackgroundAudioStreamHandler {
 
     suspend fun onStreamStopped(summary: BackgroundAudioStopSummary)
 
+    suspend fun onStreamInterrupted(interruption: BackgroundAudioInterruption) {}
+
     /**
      * Called after audio and metadata for the given sequence range are durable on phone.
      * Return the highest contiguous sequence persisted for checkpointing.
@@ -25,4 +27,5 @@ object NoOpBackgroundAudioStreamHandler : BackgroundAudioStreamHandler {
     override suspend fun onFrameBatch(batch: BackgroundAudioFrameBatch) {}
     override suspend fun onGap(gap: BackgroundAudioGap) {}
     override suspend fun onStreamStopped(summary: BackgroundAudioStopSummary) {}
+    override suspend fun onStreamInterrupted(interruption: BackgroundAudioInterruption) {}
 }

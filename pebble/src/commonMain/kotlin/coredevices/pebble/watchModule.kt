@@ -25,6 +25,10 @@ import coredevices.pebble.services.AppstoreSourceInitializer
 import coredevices.pebble.services.CactusTranscription
 import coredevices.pebble.services.WatchIndexMemoVoiceSessionHandler
 import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioScope
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioSegmentStore
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioTranscriptionPolicy
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioTranscriptionTaskRepository
 import coredevices.pebble.services.backgroundaudio.PebbleBackgroundAudioHandler
 import io.rebble.libpebblecommon.connection.PebbleIdentifier
 import coredevices.util.recording.RecordingIngress
@@ -82,6 +86,10 @@ import io.rebble.libpebblecommon.util.SystemGeolocation
 import io.rebble.libpebblecommon.voice.TranscriptionProvider
 import io.rebble.libpebblecommon.web.LockerEntry
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.emitAll
@@ -104,6 +112,8 @@ import kotlin.uuid.Uuid
 val watchModule = module {
     single {
         Logger.d("watchModule get LibPebble3")
+        val backgroundAudioSegmentStore = get<BackgroundAudioSegmentStore>()
+        val continuousTranscriptionCoordinator = get<ContinuousTranscriptionCoordinator>()
         LibPebble3.create(
             get(),
             get(),
@@ -118,7 +128,11 @@ val watchModule = module {
                 WatchIndexMemoVoiceSessionHandler(getOrNull<RecordingIngress>()),
             ),
             backgroundAudioHandlerFactory = { id: PebbleIdentifier ->
-                PebbleBackgroundAudioHandler(watchIdentifier = id.toString())
+                PebbleBackgroundAudioHandler(
+                    watchIdentifier = id.toString(),
+                    segmentStore = backgroundAudioSegmentStore,
+                    transcriptionCoordinator = continuousTranscriptionCoordinator,
+                )
             },
         )
     } binds arrayOf(LibPebble3::class, NotificationApps::class, SystemGeolocation::class)
@@ -134,6 +148,10 @@ val watchModule = module {
     singleOf(::RealFirmwareUpdateUiTracker) bind FirmwareUpdateUiTracker::class
     factory<Clock> { Clock.System }
     singleOf(::RealPebbleAccount) bind PebbleAccount::class
+    single { BackgroundAudioSegmentStore(json = get()) }
+    single { BackgroundAudioTranscriptionTaskRepository(json = get()) }
+    single { BackgroundAudioTranscriptionPolicy() }
+    single { BackgroundAudioScope(CoroutineScope(Dispatchers.IO + SupervisorJob())) }
     singleOf(::ContinuousTranscriptionCoordinator)
     single { FirestoreLockerDao { get() } }
     single { FirestoreKnownWatchesDao { get() } }

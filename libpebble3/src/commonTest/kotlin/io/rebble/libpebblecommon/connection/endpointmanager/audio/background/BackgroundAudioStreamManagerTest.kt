@@ -64,7 +64,7 @@ class BackgroundAudioStreamManagerTest {
 
         manager.init(watchInfo(capabilities = emptySet()))
 
-        assertEquals(BackgroundAudioStreamState.UnsupportedCodec, manager.state.value)
+        assertEquals(BackgroundAudioStreamState.UnsupportedWatch, manager.state.value)
         scope.cancel()
     }
 

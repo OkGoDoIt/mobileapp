@@ -49,10 +49,10 @@ class BackgroundAudioSegmentWriter(
         decoder = speexDecoderFactory(encoderInfo)
     }
 
-    fun writeBatch(batch: BackgroundAudioFrameBatch) {
-        val dec = decoder ?: return
+    fun writeBatch(batch: BackgroundAudioFrameBatch): List<BackgroundAudioSegmentMetadata> {
+        val dec = decoder ?: return emptyList()
         ensureOpenSegment(batch.firstSequence, batch.firstSampleIndex)
-        val segment = openSegment ?: return
+        val segment = openSegment ?: return emptyList()
         val pcmPath = store.segmentPcmPath(segment.metadata.segmentId)
         SystemFileSystem.sink(pcmPath, append = true).buffered().use { sink ->
             batch.frames.forEachIndexed { index, frame ->
@@ -68,22 +68,25 @@ class BackgroundAudioSegmentWriter(
         }
         persistMetadata(segment)
         if (segment.bytesWritten >= segment.maxBytes) {
-            closeOpenSegment()
+            return listOfNotNull(closeOpenSegment(SegmentClosedReason.DurationRotation))
         }
+        return emptyList()
     }
 
-    fun recordGap() {
+    fun recordGap(): BackgroundAudioSegmentMetadata? {
         openSegment?.let {
             it.gapCount++
             persistMetadata(it)
         }
+        return null
     }
 
-    fun finishStream() {
-        closeOpenSegment()
+    fun finishStream(reason: SegmentClosedReason = SegmentClosedReason.StreamStopped): BackgroundAudioSegmentMetadata? {
+        val closed = closeOpenSegment(reason)
         decoder?.close()
         decoder = null
         config = null
+        return closed
     }
 
     private fun ensureOpenSegment(firstSequence: UInt, firstSampleIndex: ULong) {
@@ -111,17 +114,20 @@ class BackgroundAudioSegmentWriter(
         store.writeMetadata(metadata)
     }
 
-    private fun closeOpenSegment() {
-        val segment = openSegment ?: return
+    private fun closeOpenSegment(reason: SegmentClosedReason): BackgroundAudioSegmentMetadata? {
+        val segment = openSegment ?: return null
         val closed = segment.metadata.copy(
             endedAtEpochMs = Clock.System.now().toEpochMilliseconds(),
             lastSequence = segment.lastSequence,
             lastSampleIndex = segment.lastSampleIndex,
             status = SegmentStatus.Closed,
             gapCount = segment.gapCount,
+            bytesWritten = segment.bytesWritten.toLong(),
+            closedReason = reason,
         )
         store.writeMetadata(closed)
         openSegment = null
+        return closed
     }
 
     private fun persistMetadata(segment: OpenSegment) {
@@ -130,6 +136,7 @@ class BackgroundAudioSegmentWriter(
                 lastSequence = segment.lastSequence,
                 lastSampleIndex = segment.lastSampleIndex,
                 gapCount = segment.gapCount,
+                bytesWritten = segment.bytesWritten.toLong(),
             ),
         )
     }
