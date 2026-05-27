@@ -37,8 +37,11 @@ import coredevices.ring.external.indexwebhook.IndexWebhookApi
 import coredevices.ring.external.indexwebhook.IndexWebhookPreferences
 import coredevices.ring.service.RecordingBackgroundScope
 import coredevices.ring.service.recordings.RecordingPreprocessor
+import coredevices.ring.service.recordings.IndexRecordingIngress
 import coredevices.ring.service.recordings.RecordingProcessingQueue
 import coredevices.ring.service.recordings.RecordingProcessor
+import coredevices.util.recording.RecordingIngressMetadata
+import coredevices.util.recording.RecordingSourceType
 import coredevices.ring.service.recordings.button.RecordingOperationFactory
 import coredevices.ring.encryption.DocumentEncryptor
 import coredevices.ring.encryption.EncryptionKeyManager
@@ -335,6 +338,26 @@ class RecordingProcessingQueueTest {
             "Expected assistant message",
             messages.any { it.document.role == MessageRole.assistant }
         )
+    }
+
+    @Test
+    fun indexRecordingIngress_finalize_queuesLocalAudioProcessing() = runBlocking {
+        val ingress = IndexRecordingIngress(
+            recordingStorage = GlobalContext.get().get(),
+            recordingProcessingQueue = queue,
+        )
+        val fileId = "ingress-finalize-test"
+        createFakeAudioFile(fileId)
+        val metadata = RecordingIngressMetadata(
+            sourceType = RecordingSourceType.PhoneMic,
+        )
+
+        ingress.finalizeLocalRecording(fileId, metadata = metadata)
+
+        val cacheDir = File(context.cacheDir, "recordings")
+        assertTrue(File(cacheDir, fileId).exists())
+        assertTrue(File(cacheDir, "$fileId-clean").exists())
+        assertEquals(1, taskDao.getPendingTasks().size)
     }
 
     @Test

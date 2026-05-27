@@ -54,6 +54,7 @@ class PebbleService: Service(), KoinComponent {
     private val commonPrefs: Preferences by inject()
     private var ringObserverJob: Job? = null
     private var firstRingRun: Boolean = true
+    private var resumedRecordingQueue: Boolean = false
 
     private fun handleIntent(intent: Intent) {
         when (intent.action) {
@@ -78,11 +79,19 @@ class PebbleService: Service(), KoinComponent {
         }
     }
 
+    private fun resumeRecordingQueueIfNeeded() {
+        if (resumedRecordingQueue) {
+            return
+        }
+        resumedRecordingQueue = true
+        logger.i { "Resuming pending Index recording processing tasks" }
+        recordingProcessingQueue.resumePendingTasks()
+    }
+
     private fun startRingSyncJob() {
         if (firstRingRun) {
-            logger.i { "Starting ring sync job for the first time, resuming pending recording processing tasks" }
+            logger.i { "Starting ring sync job for the first time" }
             firstRingRun = false
-            recordingProcessingQueue.resumePendingTasks()
         }
         if (ringSyncJob?.isActive == true) {
             logger.w { "Ring sync job is already running" }
@@ -149,6 +158,7 @@ class PebbleService: Service(), KoinComponent {
                 0
             }
         )
+        resumeRecordingQueueIfNeeded()
         observeRingPaired()
         pebbleBackgroundManager.onServiceStarted()
         return START_STICKY

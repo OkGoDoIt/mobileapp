@@ -22,6 +22,8 @@ import kotlin.uuid.Uuid
  */
 class WatchIndexMemoVoiceSessionHandler(
     private val recordingIngress: RecordingIngress?,
+    private val speexDecoderFactory: (VoiceEncoderInfo.Speex) -> SpeexFrameDecoder =
+        { PebbleSpeexFrameDecoder(it) },
 ) : VoiceSessionHandler {
     private val logger = Logger.withTag("WatchIndexMemo")
 
@@ -53,7 +55,7 @@ class WatchIndexMemoVoiceSessionHandler(
         )
         var finalized = false
         return try {
-            PebbleSpeexFrameDecoder(encoderInfo).use { decoder ->
+            speexDecoderFactory(encoderInfo).use { decoder ->
                 ingress.openRawPcmSink(
                     fileId = fileId,
                     sampleRate = decoder.sampleRate,
