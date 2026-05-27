@@ -293,7 +293,6 @@ val CommonPhoneCapabilities = setOf(
     ProtocolCapsFlag.SupportsAppDictation,
     ProtocolCapsFlag.Supports8kAppMessage,
     ProtocolCapsFlag.SupportsSettingsSync,
-    ProtocolCapsFlag.SupportsBackgroundAudioStreaming,
 //    ProtocolCapsFlag.SupportsHealthInsights,
 //    ProtocolCapsFlag.SupportsUnreadCoreDump,
     ProtocolCapsFlag.SupportsWeatherApp,

@@ -163,13 +163,14 @@ class SInt(mapper: StructMapper, default: Int = 0, endianness: Endian = Endian.U
         get() = get().toLong()
 }
 
-class SULong(mapper: StructMapper, default: ULong = 0u) :
+class SULong(mapper: StructMapper, default: ULong = 0u, endianness: Endian = Endian.Unspecified) :
     StructElement<ULong>(
         { buf, el -> buf.putULong(el.get()) },
         { buf, el -> el.set(buf.getULong()) },
         mapper,
         ULong.SIZE_BYTES,
-        default
+        default,
+        endianness
     ), NumberStructElement {
     override val valueNumber: Long
         get() = get().toLong()

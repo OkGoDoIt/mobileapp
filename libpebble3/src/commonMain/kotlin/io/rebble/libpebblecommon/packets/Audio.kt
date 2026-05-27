@@ -58,15 +58,15 @@ sealed class BackgroundAudioStream(command: Command) : PebblePacket(ProtocolEndp
         val sampleRateHz = SUInt(m, endianness = Endian.Little)
         val bitRateBps = SUInt(m, endianness = Endian.Little)
         val frameDurationMs = SUShort(m, endianness = Endian.Little)
-        val startTimeMs = SULong(m)
-        val startMonotonicMs = SULong(m)
+        val startTimeMs = SULong(m, endianness = Endian.Little)
+        val startMonotonicMs = SULong(m, endianness = Endian.Little)
         val flags = SUInt(m, endianness = Endian.Little)
     }
 
     class BackgroundStreamData : BackgroundAudioStream(Command.StreamData) {
         val streamId = SUInt(m, endianness = Endian.Little)
         val firstSequence = SUInt(m, endianness = Endian.Little)
-        val firstSampleIndex = SULong(m)
+        val firstSampleIndex = SULong(m, endianness = Endian.Little)
         val frameCount = SUByte(m)
         val flags = SUShort(m, endianness = Endian.Little)
         val encodedFramesPayload = SUnboundBytes(m)
@@ -76,7 +76,7 @@ sealed class BackgroundAudioStream(command: Command) : PebblePacket(ProtocolEndp
         val streamId = SUInt(m, endianness = Endian.Little)
         val firstMissingSequence = SUInt(m, endianness = Endian.Little)
         val missingFrameCount = SUInt(m, endianness = Endian.Little)
-        val firstMissingSampleIndex = SULong(m)
+        val firstMissingSampleIndex = SULong(m, endianness = Endian.Little)
         val reason = SUByte(m)
         val watchDropCounter = SUInt(m, endianness = Endian.Little)
     }
@@ -90,7 +90,7 @@ sealed class BackgroundAudioStream(command: Command) : PebblePacket(ProtocolEndp
     ) : BackgroundAudioStream(Command.StreamCheckpoint) {
         val streamId = SUInt(m, streamId, endianness = Endian.Little)
         val highestContiguousSequencePersisted = SUInt(m, highestContiguousSequencePersisted, endianness = Endian.Little)
-        val persistedSampleIndex = SULong(m, persistedSampleIndex)
+        val persistedSampleIndex = SULong(m, persistedSampleIndex, endianness = Endian.Little)
         val receiverFlags = SUInt(m, receiverFlags, endianness = Endian.Little)
         val freeStorageHintKb = SUInt(m, freeStorageHintKb, endianness = Endian.Little)
     }
@@ -99,7 +99,7 @@ sealed class BackgroundAudioStream(command: Command) : PebblePacket(ProtocolEndp
         val streamId = SUInt(m, endianness = Endian.Little)
         val reason = SUByte(m)
         val finalSequence = SUInt(m, endianness = Endian.Little)
-        val finalSampleIndex = SULong(m)
+        val finalSampleIndex = SULong(m, endianness = Endian.Little)
         val countersCrcOrZero = SUInt(m, endianness = Endian.Little)
     }
 

@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import coredevices.pebble.Platform
 import coredevices.pebble.rememberLibPebble
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioSegmentMetadata
 import coredevices.pebble.services.backgroundaudio.TranscriptionStatus
@@ -32,12 +33,14 @@ import io.rebble.libpebblecommon.connection.ConnectedPebbleDevice
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamState
 import io.rebble.libpebblecommon.database.entity.BoolWatchPref
 import io.rebble.libpebblecommon.packets.ProtocolCapsFlag
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun BackgroundAudioScreen(navBarNav: NavBarNav, topBarParams: TopBarParams) {
     val viewModel: BackgroundAudioViewModel = koinViewModel()
+    val platform = koinInject<Platform>()
     val uiState by viewModel.uiState.collectAsState()
     val libPebble = rememberLibPebble()
     val watches by libPebble.watches.collectAsState()
@@ -67,7 +70,7 @@ fun BackgroundAudioScreen(navBarNav: NavBarNav, topBarParams: TopBarParams) {
         viewModel.updateStreamState(
             streamState = streamState,
             watchSupported = watchSupported,
-            phoneSupported = true,
+            phoneSupported = platform == Platform.Android,
         )
     }
 
