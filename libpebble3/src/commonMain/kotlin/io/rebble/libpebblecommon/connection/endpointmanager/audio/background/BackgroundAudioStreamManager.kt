@@ -17,7 +17,7 @@ class BackgroundAudioStreamManager(
     private val audioStreamService: AudioStreamService,
     private val watchScope: ConnectionCoroutineScope,
     private val handler: BackgroundAudioStreamHandler = NoOpBackgroundAudioStreamHandler,
-) {
+) : BackgroundAudioStatus {
     companion object {
         private val logger = Logger.withTag("BackgroundAudio")
     }
@@ -28,7 +28,7 @@ class BackgroundAudioStreamManager(
     private var lastReceivedSampleIndex: ULong? = null
 
     private val _state = MutableStateFlow(BackgroundAudioStreamState.Idle)
-    val state = _state.asStateFlow()
+    override val state = _state.asStateFlow()
 
     fun init(watchInfo: WatchInfo) {
         this.watchInfo = watchInfo

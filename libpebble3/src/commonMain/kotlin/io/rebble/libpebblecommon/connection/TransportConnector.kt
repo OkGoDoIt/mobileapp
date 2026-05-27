@@ -262,6 +262,10 @@ class RealPebbleConnector(
         musicControlManager.init()
         voiceSessionManager.init()
         backgroundAudioStreamManager.init(watchInfo)
+        scope.launch {
+            val reason = transportConnector.disconnected.await()
+            backgroundAudioStreamManager.onDisconnected(reason.name)
+        }
         dataLoggingService.realInit(watchInfo)
         appOrderManager.init()
 
@@ -284,6 +288,7 @@ class RealPebbleConnector(
                 screenshot = screenshotService,
                 language = languagePackInstaller,
                 health = healthService,
+                backgroundAudio = backgroundAudioStreamManager,
             )
         )
     }

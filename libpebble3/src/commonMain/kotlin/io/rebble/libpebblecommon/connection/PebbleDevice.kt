@@ -6,6 +6,7 @@ import io.rebble.libpebblecommon.connection.bt.ble.pebble.PebbleLeScanRecord
 import io.rebble.libpebblecommon.connection.endpointmanager.FirmwareUpdater
 import io.rebble.libpebblecommon.connection.endpointmanager.InstalledLanguagePack
 import io.rebble.libpebblecommon.connection.endpointmanager.LanguagePackInstallState
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStatus
 import io.rebble.libpebblecommon.connection.endpointmanager.musiccontrol.MusicTrack
 import io.rebble.libpebblecommon.js.PKJSApp
 import io.rebble.libpebblecommon.metadata.WatchColor
@@ -247,6 +248,7 @@ object ConnectedPebble {
         val screenshot: Screenshot,
         val language: LanguageInstall,
         val health: Health,
+        val backgroundAudio: BackgroundAudioStatus,
     )
 
     class PrfServices(

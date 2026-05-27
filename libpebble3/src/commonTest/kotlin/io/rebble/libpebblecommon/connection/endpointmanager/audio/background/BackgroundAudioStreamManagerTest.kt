@@ -50,7 +50,9 @@ class BackgroundAudioStreamManagerTest {
         assertTrue(handler.gaps.any { it.synthetic })
         assertTrue(handler.gaps.any { !it.synthetic })
         assertEquals(1, handler.stops.size)
-        assertTrue(protocolHandler.sent.any { it is BackgroundAudioStream.BackgroundStreamCheckpoint })
+        val checkpoint = protocolHandler.sent.filterIsInstance<BackgroundAudioStream.BackgroundStreamCheckpoint>().first()
+        assertEquals(0x04u, checkpoint.receiverFlags.get())
+        assertEquals(1234u, checkpoint.freeStorageHintKb.get())
         scope.cancel()
     }
 
@@ -68,11 +70,44 @@ class BackgroundAudioStreamManagerTest {
         scope.cancel()
     }
 
-    private class CapturingHandler : BackgroundAudioStreamHandler {
+    @Test
+    fun activeDisconnectInterruptsStreamWithoutStopCallback() = runBlocking {
+        val protocolHandler = FakeProtocolHandler()
+        val handler = CapturingHandler()
+        val scope = ConnectionCoroutineScope(SupervisorJob())
+        val manager = BackgroundAudioStreamManager(
+            audioStreamService = AudioStreamService(protocolHandler),
+            watchScope = scope,
+            handler = handler,
+        )
+
+        manager.init(watchInfo())
+        delay(10)
+        protocolHandler.receive(startPacket(streamId = 11u))
+        protocolHandler.receive(dataPacket(streamId = 11u, firstSequence = 3u, frames = listOf(ubyteArrayOf(0xCCu))))
+        delay(10)
+
+        manager.onDisconnected("test")
+        delay(50)
+
+        assertEquals(BackgroundAudioStreamState.PausedDisconnected, manager.state.value)
+        assertEquals(1, handler.interruptions.size)
+        assertEquals(11u, handler.interruptions.single().streamId)
+        assertEquals(3u, handler.interruptions.single().lastReceivedSequence)
+        assertEquals(960u, handler.interruptions.single().lastReceivedSampleIndex)
+        assertEquals(emptyList(), handler.stops)
+        scope.cancel()
+    }
+
+    private class CapturingHandler : BackgroundAudioStreamHandler, BackgroundAudioReceiverHealthSource {
         val starts = mutableListOf<BackgroundAudioStreamConfig>()
         val batches = mutableListOf<BackgroundAudioFrameBatch>()
         val gaps = mutableListOf<BackgroundAudioGap>()
         val stops = mutableListOf<BackgroundAudioStopSummary>()
+        val interruptions = mutableListOf<BackgroundAudioInterruption>()
+
+        override val receiverFlags: UInt = 0x04u
+        override val freeStorageHintKb: UInt = 1234u
 
         override suspend fun onStreamStarted(config: BackgroundAudioStreamConfig) {
             starts.add(config)
@@ -88,6 +123,10 @@ class BackgroundAudioStreamManagerTest {
 
         override suspend fun onStreamStopped(summary: BackgroundAudioStopSummary) {
             stops.add(summary)
+        }
+
+        override suspend fun onStreamInterrupted(interruption: BackgroundAudioInterruption) {
+            interruptions.add(interruption)
         }
     }
 
