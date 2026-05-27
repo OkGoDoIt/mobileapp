@@ -85,6 +85,9 @@ import io.rebble.libpebblecommon.connection.endpointmanager.RealFirmwareUpdater
 import io.rebble.libpebblecommon.connection.endpointmanager.RealLanguagePackInstaller
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionHandler
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionManager
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamHandler
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamManager
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.NoOpBackgroundAudioStreamHandler
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDB
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDbDaos
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.RealTimeProvider
@@ -290,6 +293,7 @@ val CommonPhoneCapabilities = setOf(
     ProtocolCapsFlag.SupportsAppDictation,
     ProtocolCapsFlag.Supports8kAppMessage,
     ProtocolCapsFlag.SupportsSettingsSync,
+    ProtocolCapsFlag.SupportsBackgroundAudioStreaming,
 //    ProtocolCapsFlag.SupportsHealthInsights,
 //    ProtocolCapsFlag.SupportsUnreadCoreDump,
     ProtocolCapsFlag.SupportsWeatherApp,
@@ -309,6 +313,8 @@ internal interface LibPebbleKoinComponent : KoinComponent {
     override fun getKoin(): Koin = LibPebbleKoinContext.koin
 }
 
+typealias BackgroundAudioHandlerFactory = (PebbleIdentifier) -> BackgroundAudioStreamHandler
+
 fun initKoin(
     defaultConfig: LibPebbleConfig,
     webServices: WebServices,
@@ -318,6 +324,7 @@ fun initKoin(
     transcriptionProvider: TranscriptionProvider,
     injectedPKJSHttpInterceptors: InjectedPKJSHttpInterceptors,
     voiceSessionHandlers: List<VoiceSessionHandler> = emptyList(),
+    backgroundAudioHandlerFactory: BackgroundAudioHandlerFactory = { NoOpBackgroundAudioStreamHandler },
 ): Koin {
     val koin = LibPebbleKoinContext.koin
     val libPebbleScope = LibPebbleCoroutineScope(CoroutineName("libpebble3"))
@@ -339,6 +346,7 @@ fun initKoin(
                 single { transcriptionProvider }
                 single { injectedPKJSHttpInterceptors }
                 single { voiceSessionHandlers }
+                single { backgroundAudioHandlerFactory }
                 single { getRoomDatabase(get()) }
                 singleOf(::StaticLockerPBWCache) bind LockerPBWCache::class
                 singleOf(::PebbleDeviceFactory)
@@ -496,6 +504,7 @@ fun initKoin(
                             get(), get(), get(),
                             get(), get(), get(),
                             get(), get(), get(), get(),
+                            get(),
                         )
                     } bind PebbleConnector::class
                     scopedOf(::PebbleProtocolRunner)
@@ -575,6 +584,16 @@ fun initKoin(
                             watchScope = get(),
                             transcriptionProvider = get(),
                             voiceSessionHandlers = get(),
+                        )
+                    }
+                    scoped<BackgroundAudioStreamHandler> {
+                        get<BackgroundAudioHandlerFactory>()(get())
+                    }
+                    scoped {
+                        BackgroundAudioStreamManager(
+                            audioStreamService = get(),
+                            watchScope = get(),
+                            handler = get(),
                         )
                     }
 

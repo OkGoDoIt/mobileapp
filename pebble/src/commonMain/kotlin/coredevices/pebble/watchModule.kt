@@ -24,6 +24,9 @@ import coredevices.pebble.services.AppstoreService
 import coredevices.pebble.services.AppstoreSourceInitializer
 import coredevices.pebble.services.CactusTranscription
 import coredevices.pebble.services.WatchIndexMemoVoiceSessionHandler
+import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
+import coredevices.pebble.services.backgroundaudio.PebbleBackgroundAudioHandler
+import io.rebble.libpebblecommon.connection.PebbleIdentifier
 import coredevices.util.recording.RecordingIngress
 import coredevices.pebble.services.LanguagePackRepository
 import coredevices.pebble.services.Memfault
@@ -114,6 +117,9 @@ val watchModule = module {
             voiceSessionHandlers = listOf(
                 WatchIndexMemoVoiceSessionHandler(getOrNull<RecordingIngress>()),
             ),
+            backgroundAudioHandlerFactory = { id: PebbleIdentifier ->
+                PebbleBackgroundAudioHandler(watchIdentifier = id.toString())
+            },
         )
     } binds arrayOf(LibPebble3::class, NotificationApps::class, SystemGeolocation::class)
 
@@ -128,6 +134,7 @@ val watchModule = module {
     singleOf(::RealFirmwareUpdateUiTracker) bind FirmwareUpdateUiTracker::class
     factory<Clock> { Clock.System }
     singleOf(::RealPebbleAccount) bind PebbleAccount::class
+    singleOf(::ContinuousTranscriptionCoordinator)
     single { FirestoreLockerDao { get() } }
     single { FirestoreKnownWatchesDao { get() } }
     single { HealthManagerFactory().createManager() }

@@ -215,6 +215,12 @@ enum class BoolWatchPref(
     QuietTimeMotionBacklight("dndMotionBacklight", "Quiet Time - Motion Backlight", true, description = "Enable motion backlight during Quiet Time"),
     MusicShowVolumeControls("musicShowVolumeControls", "Show Volume Controls", true),
     MusicShowProgressBar("musicShowProgressBar", "Show Progress Bar", true),
+    BackgroundAudioEnabled(
+        "backgroundAudioEnabled",
+        "Background Audio",
+        false,
+        description = "Continuously stream watch microphone audio to the phone for lifelogging",
+    ),
     ;
 
     override val type = WatchPrefType.TypeBoolean

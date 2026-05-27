@@ -18,6 +18,7 @@ import coredevices.ring.service.PEBBLE_DEBUG_NOTIFICATION_CHANNEL_ID
 import coredevices.ring.service.PEBBLE_DEBUG_NOTIFICATION_CHANNEL_NAME
 import coredevices.ring.service.RecordingBackgroundScope
 import coredevices.ring.service.RingSync
+import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
 import coredevices.ring.service.recordings.RecordingProcessingQueue
 import coredevices.util.R
 import kotlinx.coroutines.GlobalScope
@@ -51,6 +52,7 @@ class PebbleService: Service(), KoinComponent {
     private val pebbleBackgroundManager: PebbleBackgroundManager by inject()
     private val indexNotificationManager: IndexNotificationManager by inject()
     private val recordingProcessingQueue: RecordingProcessingQueue by inject()
+    private val continuousTranscriptionCoordinator: ContinuousTranscriptionCoordinator by inject()
     private val commonPrefs: Preferences by inject()
     private var ringObserverJob: Job? = null
     private var firstRingRun: Boolean = true
@@ -86,6 +88,7 @@ class PebbleService: Service(), KoinComponent {
         resumedRecordingQueue = true
         logger.i { "Resuming pending Index recording processing tasks" }
         recordingProcessingQueue.resumePendingTasks()
+        continuousTranscriptionCoordinator.resumePending()
     }
 
     private fun startRingSyncJob() {
