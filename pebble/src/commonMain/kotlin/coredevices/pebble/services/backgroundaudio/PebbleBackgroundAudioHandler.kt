@@ -6,6 +6,8 @@ import coredevices.pebble.services.SpeexFrameDecoder
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioFrameBatch
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioGap
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioInterruption
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioReceiverFlags
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioReceiverHealthSource
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStopSummary
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamConfig
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioCheckpointSource
@@ -20,14 +22,16 @@ class PebbleBackgroundAudioHandler(
     private val watchIdentifier: String,
     private val segmentStore: BackgroundAudioSegmentStore = BackgroundAudioSegmentStore(),
     private val transcriptionCoordinator: ContinuousTranscriptionCoordinator? = null,
+    private val retentionManager: BackgroundAudioRetentionManager? = null,
     private val speexDecoderFactory: (VoiceEncoderInfo.Speex) -> SpeexFrameDecoder =
         { PebbleSpeexFrameDecoder(it) },
-) : BackgroundAudioStreamHandler, BackgroundAudioCheckpointSource {
+) : BackgroundAudioStreamHandler, BackgroundAudioCheckpointSource, BackgroundAudioReceiverHealthSource {
     private val logger = Logger.withTag("PebbleBgAudio")
     private var writer: BackgroundAudioSegmentWriter? = null
 
     override suspend fun canAccept(config: BackgroundAudioStreamConfig): Boolean {
-        return config.codecId == BackgroundAudioStream.CODEC_SPEEX_WIDEBAND
+        return config.codecId == BackgroundAudioStream.CODEC_SPEEX_WIDEBAND &&
+            (retentionManager?.canAcceptNewStream() ?: true)
     }
 
     override suspend fun onStreamStarted(config: BackgroundAudioStreamConfig) {
@@ -66,9 +70,21 @@ class PebbleBackgroundAudioHandler(
     override val lastPersistedSampleIndex: ULong
         get() = writer?.lastPersistedSampleIndex ?: 0u
 
+    override val receiverFlags: UInt
+        get() = when (retentionManager?.storageState()) {
+            BackgroundAudioReceiverStorageState.LowStorage -> BackgroundAudioReceiverFlags.LOW_STORAGE
+            BackgroundAudioReceiverStorageState.PausedByPolicy -> BackgroundAudioReceiverFlags.PAUSE_REQUESTED
+            BackgroundAudioReceiverStorageState.RetentionRunning -> BackgroundAudioReceiverFlags.PAUSE_REQUESTED
+            else -> 0u
+        }
+
+    override val freeStorageHintKb: UInt
+        get() = retentionManager?.freeStorageHintKb() ?: 0u
+
     private suspend fun enqueueClosedSegment(metadata: BackgroundAudioSegmentMetadata) {
         try {
             transcriptionCoordinator?.enqueueClosedSegment(metadata)
+            retentionManager?.enforceRetention()
         } catch (e: Exception) {
             logger.w(e) { "Failed to enqueue background segment ${metadata.segmentId}" }
         }

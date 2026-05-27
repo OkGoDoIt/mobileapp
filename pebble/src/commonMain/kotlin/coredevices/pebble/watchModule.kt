@@ -26,6 +26,8 @@ import coredevices.pebble.services.CactusTranscription
 import coredevices.pebble.services.WatchIndexMemoVoiceSessionHandler
 import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioScope
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioRetentionManager
+import coredevices.pebble.services.backgroundaudio.BackgroundAudioRetentionPolicy
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioSegmentStore
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioTranscriptionPolicy
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioTranscriptionTaskRepository
@@ -114,6 +116,7 @@ val watchModule = module {
         Logger.d("watchModule get LibPebble3")
         val backgroundAudioSegmentStore = get<BackgroundAudioSegmentStore>()
         val continuousTranscriptionCoordinator = get<ContinuousTranscriptionCoordinator>()
+        val backgroundAudioRetentionManager = get<BackgroundAudioRetentionManager>()
         LibPebble3.create(
             get(),
             get(),
@@ -132,6 +135,7 @@ val watchModule = module {
                     watchIdentifier = id.toString(),
                     segmentStore = backgroundAudioSegmentStore,
                     transcriptionCoordinator = continuousTranscriptionCoordinator,
+                    retentionManager = backgroundAudioRetentionManager,
                 )
             },
         )
@@ -149,6 +153,8 @@ val watchModule = module {
     factory<Clock> { Clock.System }
     singleOf(::RealPebbleAccount) bind PebbleAccount::class
     single { BackgroundAudioSegmentStore(json = get()) }
+    single { BackgroundAudioRetentionPolicy() }
+    singleOf(::BackgroundAudioRetentionManager)
     single { BackgroundAudioTranscriptionTaskRepository(json = get()) }
     single { BackgroundAudioTranscriptionPolicy() }
     single { BackgroundAudioScope(CoroutineScope(Dispatchers.IO + SupervisorJob())) }
