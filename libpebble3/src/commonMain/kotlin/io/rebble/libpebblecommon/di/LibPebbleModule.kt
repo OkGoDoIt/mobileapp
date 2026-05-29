@@ -89,6 +89,7 @@ import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionHa
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionManager
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamHandler
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamManager
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.context.AppAudioContextManager
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.NoOpBackgroundAudioStreamHandler
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDB
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDbDaos
@@ -508,8 +509,8 @@ fun initKoin(
                             get(), get(), get(),
                             get(), get(), get(),
                             get(), get(), get(),
-                            get(), get(), get(), get(),
-                            get(),
+                            get(), get(), get(),
+                            get(), get(), get(),
                         )
                     } bind PebbleConnector::class
                     scopedOf(::PebbleProtocolRunner)
@@ -599,6 +600,13 @@ fun initKoin(
                             audioStreamService = get(),
                             watchScope = get(),
                             handler = get(),
+                        )
+                    }
+                    scoped {
+                        AppAudioContextManager(
+                            protocolHandler = get(),
+                            provider = get(),
+                            watchScope = get(),
                         )
                     }
 

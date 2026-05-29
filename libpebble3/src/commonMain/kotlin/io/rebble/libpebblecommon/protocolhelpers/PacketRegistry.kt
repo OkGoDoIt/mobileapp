@@ -1,6 +1,7 @@
 package io.rebble.libpebblecommon.protocolhelpers
 
 import io.rebble.libpebblecommon.exceptions.PacketDecodeException
+import io.rebble.libpebblecommon.packets.appAudioContextPacketsRegister
 import io.rebble.libpebblecommon.packets.appFetchIncomingPacketsRegister
 import io.rebble.libpebblecommon.packets.appLogPacketsRegister
 import io.rebble.libpebblecommon.packets.appReorderIncomingRegister
@@ -50,6 +51,7 @@ object PacketRegistry {
         logDumpPacketsRegister()
         voicePacketsRegister()
         audioStreamPacketsRegister()
+        appAudioContextPacketsRegister()
         dataLoggingPacketsRegister()
         getBytesIncomingPacketsRegister()
         healthSyncPacketsRegister()

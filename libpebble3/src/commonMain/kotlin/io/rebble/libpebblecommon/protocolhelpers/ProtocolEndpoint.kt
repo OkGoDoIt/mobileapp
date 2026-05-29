@@ -34,6 +34,7 @@ enum class ProtocolEndpoint(val value: UShort) {
     BLOBDB_V2(45787u /* 0xb2db */),
     TIMELINE_ACTIONS(11440u),
     VOICE_CONTROL(11000u),
+    APP_AUDIO_CONTEXT(12000u),
     HEALTH_SYNC(911u),
     INVALID_ENDPOINT(0xffffu);
 

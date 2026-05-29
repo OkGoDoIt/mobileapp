@@ -16,6 +16,7 @@ import io.rebble.libpebblecommon.connection.endpointmanager.FirmwareUpdater
 import io.rebble.libpebblecommon.connection.endpointmanager.RealLanguagePackInstaller
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionManager
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamManager
+import io.rebble.libpebblecommon.connection.endpointmanager.audio.context.AppAudioContextManager
 import io.rebble.libpebblecommon.connection.endpointmanager.blobdb.BlobDB
 import io.rebble.libpebblecommon.connection.endpointmanager.musiccontrol.MusicControlManager
 import io.rebble.libpebblecommon.connection.endpointmanager.phonecontrol.PhoneControlManager
@@ -146,6 +147,7 @@ class RealPebbleConnector(
     private val screenshotService: ScreenshotService,
     private val voiceSessionManager: VoiceSessionManager,
     private val backgroundAudioStreamManager: BackgroundAudioStreamManager,
+    private val appAudioContextManager: AppAudioContextManager,
     private val watchConfig: WatchConfigFlow,
     private val appOrderManager: AppOrderManager,
     private val languagePackInstaller: RealLanguagePackInstaller,
@@ -262,9 +264,11 @@ class RealPebbleConnector(
         musicControlManager.init()
         voiceSessionManager.init()
         backgroundAudioStreamManager.init(watchInfo)
+        appAudioContextManager.init()
         scope.launch {
             val reason = transportConnector.disconnected.await()
             backgroundAudioStreamManager.onDisconnected(reason.name)
+            appAudioContextManager.onDisconnected()
         }
         dataLoggingService.realInit(watchInfo)
         appOrderManager.init()
