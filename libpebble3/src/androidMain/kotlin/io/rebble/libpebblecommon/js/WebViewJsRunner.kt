@@ -84,11 +84,13 @@ class WebViewJsRunner(
         }
     }
     private val geolocationInterface = WebViewGeolocationInterface(scope, this)
+    private val audioContextInterface = WebViewAudioContextInterface(scope, this)
     private val interfaces = setOf(
             Pair(API_NAMESPACE, publicJsInterface),
             Pair(PRIVATE_API_NAMESPACE, privateJsInterface),
             Pair("_localStorage", localStorageInterface),
-            Pair("_PebbleGeo", geolocationInterface)
+            Pair("_PebbleGeo", geolocationInterface),
+            Pair("_PebbleAudioContext", audioContextInterface),
     )
 
     private val webViewClient = object : WebViewClient() {
@@ -305,6 +307,7 @@ class WebViewJsRunner(
 
     override suspend fun stop() {
         //TODO: Close config screens
+        audioContextInterface.close()
         _readyState.value = false
         withContext(Dispatchers.Main) {
             // Save final state of localStorage to our scoped storage, to catch any

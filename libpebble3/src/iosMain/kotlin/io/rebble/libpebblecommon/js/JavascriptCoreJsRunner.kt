@@ -80,7 +80,8 @@ class JavascriptCoreJsRunner(
             JSCPKJSInterface(this, device, libPebble, jsTokenUtil),
             JSCPrivatePKJSInterface(jsPath, this, device, interfacesScope, _outgoingAppMessages, logMessages, jsTokenUtil, remoteTimelineEmulator, httpInterceptorManager, notificationConfigFlow),
             JSCJSLocalStorageInterface(jsContext, appInfo.uuid, appContext, evalRawFn),
-            JSCGeolocationInterface(interfacesScope, this)
+            JSCGeolocationInterface(interfacesScope, this),
+            JSCAudioContextInterface(interfacesScope, this),
         )
 
         // Store instances for dispatch (Kotlin-side only, not exposed to JSC)

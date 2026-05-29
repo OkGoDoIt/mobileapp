@@ -4,6 +4,7 @@ import coredevices.pebble.services.backgroundaudio.BackgroundAudioRepository
 import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
 import io.rebble.libpebblecommon.audiocontext.AudioContextAvailability
 import io.rebble.libpebblecommon.audiocontext.AudioContextPermission
+import io.rebble.libpebblecommon.audiocontext.AudioContextPermissionException
 import io.rebble.libpebblecommon.audiocontext.AudioContextPromptResult
 import io.rebble.libpebblecommon.audiocontext.AudioContextProvider
 import io.rebble.libpebblecommon.audiocontext.AudioContextQueryWindow
@@ -37,7 +38,7 @@ class PebbleAudioContextBroker(
             permissionChecker.require(appUuid, AudioContextPermission.Status)
             if (phoneSupported) AudioContextAvailability.Available else AudioContextAvailability.UnsupportedPhone
         }.getOrElse { error ->
-            (error as? AudioContextPermissionDenied)?.availability ?: AudioContextAvailability.Error
+            (error as? AudioContextPermissionException)?.availability ?: AudioContextAvailability.Error
         }
         val snapshot = backgroundAudioRepository.snapshot()
         return AudioContextStatus(

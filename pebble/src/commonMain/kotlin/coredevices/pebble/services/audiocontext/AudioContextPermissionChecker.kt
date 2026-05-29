@@ -2,15 +2,11 @@ package coredevices.pebble.services.audiocontext
 
 import io.rebble.libpebblecommon.audiocontext.AudioContextAvailability
 import io.rebble.libpebblecommon.audiocontext.AudioContextPermission
+import io.rebble.libpebblecommon.audiocontext.AudioContextPermissionException
 import io.rebble.libpebblecommon.database.dao.LockerAppPermissionDao
 import io.rebble.libpebblecommon.database.dao.LockerEntryRealDao
 import io.rebble.libpebblecommon.database.entity.LockerAppPermissionType
 import kotlin.uuid.Uuid
-
-class AudioContextPermissionDenied(
-    val availability: AudioContextAvailability,
-    message: String,
-) : Exception(message)
 
 class AudioContextPermissionChecker(
     private val permissionGranted: suspend (Uuid, LockerAppPermissionType) -> Boolean?,
@@ -31,14 +27,14 @@ class AudioContextPermissionChecker(
     suspend fun require(appUuid: Uuid, permission: AudioContextPermission) {
         val declared = hasDeclaredCapability(appUuid, permission)
         if (!declared) {
-            throw AudioContextPermissionDenied(
+            throw AudioContextPermissionException(
                 AudioContextAvailability.CapabilityNotDeclared,
                 "App has not declared ${permission.capability}",
             )
         }
         val granted = permissionGranted(appUuid, permission.toLockerPermission()) == true
         if (!granted) {
-            throw AudioContextPermissionDenied(
+            throw AudioContextPermissionException(
                 AudioContextAvailability.PermissionDenied,
                 "Audio context permission is not granted",
             )

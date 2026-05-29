@@ -61,6 +61,41 @@ navigator.geolocation.clearWatch = (id) => {
     }
 };
 
+_global._PebbleAudioContextCB = {
+    _resultCallbacks: new Map(),
+    _eventCallbacks: new Map(),
+    _nextCallbackId: 1,
+    _createCallbackId: () => String(_global._PebbleAudioContextCB._nextCallbackId++),
+    _resultSuccess: (id, payloadJson) => {
+        const callback = _global._PebbleAudioContextCB._resultCallbacks.get(id);
+        if (!callback) {
+            return;
+        }
+        _global._PebbleAudioContextCB._resultCallbacks.delete(id);
+        try {
+            const payload = JSON.parse(payloadJson);
+            if (payload.availability && payload.message) {
+                callback.error(payload);
+            } else {
+                callback.success(payload);
+            }
+        } catch (error) {
+            callback.error({ availability: 'Error', message: String(error) });
+        }
+    },
+    _event: (subscriptionId, payloadJson) => {
+        const callback = _global._PebbleAudioContextCB._eventCallbacks.get(subscriptionId);
+        if (!callback) {
+            return;
+        }
+        try {
+            callback(JSON.parse(payloadJson));
+        } catch (error) {
+            console.error('PKJS audio context event parse failed', error);
+        }
+    },
+};
+
 ((global) => {
     const oldConsole = {
         log: console.log,
@@ -383,6 +418,77 @@ navigator.geolocation.clearWatch = (id) => {
         deleteTimelinePin: (id) => {
             _Pebble.deleteTimelinePin(id);
         },
+        audioContext: {
+            getStatus: (callback) => {
+                const id = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(id, callback);
+                _PebbleAudioContext.getStatus(id);
+            },
+            requestEnable: (callback) => {
+                const id = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(id, callback);
+                _PebbleAudioContext.requestEnable(id);
+            },
+            requestPermission: (permissions, callback) => {
+                const id = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(id, callback);
+                _PebbleAudioContext.requestPermission(id, JSON.stringify(permissions || []));
+            },
+            getRecentTranscript: (options, callback) => {
+                const id = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(id, callback);
+                _PebbleAudioContext.recentTranscript(id, JSON.stringify(options || {}));
+            },
+            getTranscriptHistory: (options, callback) => {
+                const id = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(id, callback);
+                _PebbleAudioContext.transcriptHistory(id, JSON.stringify(options || {}));
+            },
+            onTranscript: (options, handler) => {
+                let subscriptionId = null;
+                const setupId = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(setupId, {
+                    success: (payload) => {
+                        subscriptionId = payload.subscriptionId;
+                        _PebbleAudioContextCB._eventCallbacks.set(subscriptionId, (event) => {
+                            handler(event.segment);
+                        });
+                    },
+                    error: (payload) => {
+                        if (handler && typeof handler.onError === 'function') {
+                            handler.onError(payload);
+                        }
+                    },
+                });
+                _PebbleAudioContext.subscribeTranscript(setupId, JSON.stringify(options || {}));
+                return () => {
+                    if (subscriptionId) {
+                        _PebbleAudioContext.unsubscribe(subscriptionId);
+                    }
+                };
+            },
+            onRawAudio: (options, handler) => {
+                let subscriptionId = null;
+                const setupId = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(setupId, {
+                    success: (payload) => {
+                        subscriptionId = payload.subscriptionId;
+                        _PebbleAudioContextCB._eventCallbacks.set(subscriptionId, handler);
+                    },
+                    error: (payload) => {
+                        if (handler && typeof handler.onError === 'function') {
+                            handler.onError(payload);
+                        }
+                    },
+                });
+                _PebbleAudioContext.subscribeRawAudio(setupId, JSON.stringify(options || {}));
+                return () => {
+                    if (subscriptionId) {
+                        _PebbleAudioContext.unsubscribe(subscriptionId);
+                    }
+                };
+            },
+        },
     }
     global.Pebble.addEventListener = PebbleAPI.addEventListener;
     global.Pebble.removeEventListener = PebbleAPI.removeEventListener;
@@ -395,6 +501,7 @@ navigator.geolocation.clearWatch = (id) => {
     global.Pebble.appGlanceReload = PebbleAPI.appGlanceReload;
     global.Pebble.insertTimelinePin = PebbleAPI.insertTimelinePin;
     global.Pebble.deleteTimelinePin = PebbleAPI.deleteTimelinePin;
+    global.Pebble.audioContext = PebbleAPI.audioContext;
 
     // Enable intercepting XHR calls (on Android - this doesn't work on iOS so we don't add
     // shouldIntercept to the PKJS interface there).

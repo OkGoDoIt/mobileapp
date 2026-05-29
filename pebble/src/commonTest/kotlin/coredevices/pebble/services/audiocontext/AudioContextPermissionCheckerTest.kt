@@ -2,6 +2,7 @@ package coredevices.pebble.services.audiocontext
 
 import io.rebble.libpebblecommon.audiocontext.AudioContextAvailability
 import io.rebble.libpebblecommon.audiocontext.AudioContextPermission
+import io.rebble.libpebblecommon.audiocontext.AudioContextPermissionException
 import io.rebble.libpebblecommon.database.entity.LockerAppPermissionType
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -17,7 +18,7 @@ class AudioContextPermissionCheckerTest {
             grants = mapOf(LockerAppPermissionType.AudioTranscript to true),
         )
 
-        val error = assertFailsWith<AudioContextPermissionDenied> {
+        val error = assertFailsWith<AudioContextPermissionException> {
             checker.require(Uuid.random(), AudioContextPermission.RecentTranscript)
         }
 
@@ -28,7 +29,7 @@ class AudioContextPermissionCheckerTest {
     fun deniesByDefaultWhenGrantIsMissing() = runBlocking {
         val checker = checker(declared = listOf("audio_transcript"), grants = emptyMap())
 
-        val error = assertFailsWith<AudioContextPermissionDenied> {
+        val error = assertFailsWith<AudioContextPermissionException> {
             checker.require(Uuid.random(), AudioContextPermission.RecentTranscript)
         }
 
