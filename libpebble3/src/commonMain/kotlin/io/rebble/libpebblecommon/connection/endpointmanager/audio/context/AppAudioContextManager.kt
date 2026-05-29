@@ -29,6 +29,7 @@ class AppAudioContextManager(
     private val protocolHandler: PebbleProtocolHandler,
     private val provider: AudioContextProvider,
     private val watchScope: ConnectionCoroutineScope,
+    private val runningAppUuid: () -> Uuid? = { null },
 ) {
     private val logger = Logger.withTag("AppAudioContext")
     private val json = Json { ignoreUnknownKeys = true }
@@ -60,7 +61,7 @@ class AppAudioContextManager(
     }
 
     private suspend fun handleStatus(packet: AppAudioContext.StatusRequest) {
-        val appUuid = packet.appUuid.get()
+        val appUuid = resolveAppUuid(packet.appUuid.get())
         val requestId = packet.requestId.get()
         runCatching { provider.status(appUuid) }
             .onSuccess { status ->
@@ -82,7 +83,7 @@ class AppAudioContextManager(
     }
 
     private suspend fun handleEnablePrompt(packet: AppAudioContext.EnablePromptRequest) {
-        val appUuid = packet.appUuid.get()
+        val appUuid = resolveAppUuid(packet.appUuid.get())
         val requestId = packet.requestId.get()
         runCatching { provider.requestEnablePrompt(appUuid) }
             .onSuccess { result ->
@@ -98,7 +99,7 @@ class AppAudioContextManager(
     }
 
     private suspend fun handlePermissionPrompt(packet: AppAudioContext.PermissionRequest) {
-        val appUuid = packet.appUuid.get()
+        val appUuid = resolveAppUuid(packet.appUuid.get())
         val requestId = packet.requestId.get()
         val permissions = packet.permissionBytes.get().mapNotNull { wirePermission(it) }.toSet()
         runCatching { provider.requestPermissionPrompt(appUuid, permissions) }
@@ -115,7 +116,7 @@ class AppAudioContextManager(
     }
 
     private suspend fun handleTranscript(packet: AppAudioContext.TranscriptRequest) {
-        val appUuid = packet.appUuid.get()
+        val appUuid = resolveAppUuid(packet.appUuid.get())
         val requestId = packet.requestId.get()
         val window = AudioContextQueryWindow(
             beforeSeconds = packet.beforeSeconds.get().toInt(),
@@ -137,7 +138,7 @@ class AppAudioContextManager(
     }
 
     private fun handleSubscribe(packet: AppAudioContext.SubscribeRequest) {
-        val appUuid = packet.appUuid.get()
+        val appUuid = resolveAppUuid(packet.appUuid.get())
         val requestId = packet.requestId.get()
         subscriptionJobs.remove(requestId)?.cancel()
         val options = AudioContextSubscriptionOptions(
@@ -169,27 +170,22 @@ class AppAudioContextManager(
     ) {
         val payloadJson = json.encodeToString(TranscriptPayload(segments))
         val payloadBytes = payloadJson.encodeToByteArray().toUByteArray()
-        if (payloadBytes.size > AppAudioContext.MAX_TRANSCRIPT_CHUNK_BYTES) {
+        val chunks = payloadBytes.asIterable()
+            .chunked(AppAudioContext.MAX_TRANSCRIPT_CHUNK_BYTES)
+            .map { it.toUByteArray() }
+            .ifEmpty { listOf(UByteArray(0)) }
+        chunks.forEachIndexed { index, chunk ->
             send(
-                AppAudioContext.ErrorResponse(
+                AppAudioContext.TranscriptResponse(
                     requestId = requestId,
                     appUuid = appUuid,
-                    errorCodeValue = AppAudioContext.ErrorCode.ResponseTooLarge.value,
-                    message = "Transcript payload exceeds watch limit",
+                    responseStatus = 0u,
+                    partIndexValue = index.toUShort(),
+                    partCountValue = chunks.size.toUShort(),
+                    payload = chunk,
                 ),
             )
-            return
         }
-        send(
-            AppAudioContext.TranscriptResponse(
-                requestId = requestId,
-                appUuid = appUuid,
-                responseStatus = 0u,
-                partIndexValue = 0u,
-                partCountValue = 1u,
-                payload = payloadBytes,
-            ),
-        )
     }
 
     private suspend fun sendEvent(
@@ -242,6 +238,14 @@ class AppAudioContextManager(
 
     private suspend fun send(packet: PebblePacket) {
         protocolHandler.send(packet)
+    }
+
+    private fun resolveAppUuid(packetAppUuid: Uuid): Uuid {
+        val running = runningAppUuid()
+        if (running != null && running != packetAppUuid) {
+            logger.w { "Ignoring AppAudioContext packet UUID $packetAppUuid; binding request to running app $running" }
+        }
+        return running ?: packetAppUuid
     }
 
     private fun wirePermission(value: UByte): AudioContextPermission? = when (value) {

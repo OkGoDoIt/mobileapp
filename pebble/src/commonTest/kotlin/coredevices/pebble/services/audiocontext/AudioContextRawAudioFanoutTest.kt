@@ -31,6 +31,22 @@ class AudioContextRawAudioFanoutTest {
         received.cancel()
     }
 
+    @Test
+    fun clampsChunksToSubscriberMaxChunkBytes() = runBlocking {
+        val fanout = AudioContextRawAudioFanout()
+        val firstChunk = async {
+            fanout.subscribe(
+                Uuid.random(),
+                AudioContextRawAudioOptions(maxChunkBytes = 2),
+            ).first()
+        }
+
+        delay(20)
+        fanout.publish(chunk(sequence = 9))
+
+        assertEquals(byteArrayOf(1, 2).toList(), firstChunk.await().bytes.toList())
+    }
+
     private fun chunk(sequence: Long) = AudioContextRawAudioChunk(
         streamId = 1,
         sequenceStart = sequence,

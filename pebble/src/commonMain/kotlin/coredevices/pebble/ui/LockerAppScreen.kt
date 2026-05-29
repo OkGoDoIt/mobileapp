@@ -93,6 +93,9 @@ import io.rebble.libpebblecommon.connection.PebbleIdentifier
 import io.rebble.libpebblecommon.locker.AppCapability
 import io.rebble.libpebblecommon.locker.AppType
 import io.rebble.libpebblecommon.locker.orderIndexForInsert
+import io.rebble.libpebblecommon.database.dao.LockerAppPermissionDao
+import io.rebble.libpebblecommon.database.entity.LockerAppPermission
+import io.rebble.libpebblecommon.database.entity.LockerAppPermissionType
 import io.rebble.libpebblecommon.metadata.WatchType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
@@ -476,10 +479,9 @@ fun LockerAppScreen(topBarParams: TopBarParams, uuid: Uuid?, navBarNav: NavBarNa
                             modifier = Modifier.padding(5.dp),
                         )
                     }
-                    // Only show for store, right now (until we figure out populating data or locker)
-                    if (storeEntry?.capabilities?.isNotEmpty() == true) {
+                    if (entry.capabilities.isNotEmpty()) {
                         FlowRow(modifier = Modifier.padding(5.dp)) {
-                            storeEntry.capabilities.forEach { permission ->
+                            entry.capabilities.forEach { permission ->
                                 PermissionItem(permission, entry, topBarParams)
                             }
                         }
@@ -872,8 +874,64 @@ private fun PropertyRow(
 
 @Composable
 fun PermissionItem(permission: AppCapability, entry: CommonApp, topBarParams: TopBarParams) {
-    if (entry.commonAppType is CommonAppType.Locker) {
-        // TODO
+    val permissionDao: LockerAppPermissionDao = koinInject()
+    val scope = rememberCoroutineScope()
+    val lockerPermission = permission.toLockerPermissionType()
+    if (entry.commonAppType is CommonAppType.Locker && lockerPermission != null) {
+        val grant by produceState<LockerAppPermission?>(null, entry.uuid, lockerPermission) {
+            value = permissionDao.getByAppUuidAndPermission(entry.uuid, lockerPermission)
+        }
+        var showRawConfirm by remember { mutableStateOf(false) }
+        val granted = grant?.granted == true
+
+        if (showRawConfirm) {
+            AlertDialog(
+                onDismissRequest = { showRawConfirm = false },
+                title = { Text("Allow Raw Audio?") },
+                text = {
+                    Text("Raw audio may include sensitive sounds nearby. Only grant this to apps you trust.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showRawConfirm = false
+                        scope.launch {
+                            permissionDao.insertOrReplace(
+                                LockerAppPermission(entry.uuid, lockerPermission, granted = true),
+                            )
+                            topBarParams.showSnackbar("Raw Audio allowed")
+                        }
+                    }) {
+                        Text("Allow")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRawConfirm = false }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+
+        FilterChip(
+            selected = granted,
+            onClick = {
+                if (!granted && permission == AppCapability.AudioRaw) {
+                    showRawConfirm = true
+                } else {
+                    scope.launch {
+                        permissionDao.insertOrReplace(
+                            LockerAppPermission(entry.uuid, lockerPermission, granted = !granted),
+                        )
+                        topBarParams.showSnackbar(
+                            "${permission.name()} ${if (granted) "revoked" else "allowed"}",
+                        )
+                    }
+                }
+            },
+            label = { Text(permission.name()) },
+            leadingIcon = { Icon(permission.icon(), null) },
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
     } else {
         AssistChip(
             onClick = {
@@ -884,6 +942,16 @@ fun PermissionItem(permission: AppCapability, entry: CommonApp, topBarParams: To
             modifier = Modifier.padding(horizontal = 6.dp)
         )
     }
+}
+
+private fun AppCapability.toLockerPermissionType(): LockerAppPermissionType? = when (this) {
+    AppCapability.Location -> LockerAppPermissionType.Location
+    AppCapability.AudioStatus -> LockerAppPermissionType.AudioStatus
+    AppCapability.AudioTranscript -> LockerAppPermissionType.AudioTranscript
+    AppCapability.AudioHistory -> LockerAppPermissionType.AudioHistory
+    AppCapability.AudioRaw -> LockerAppPermissionType.AudioRaw
+    AppCapability.Health,
+    AppCapability.Timeline -> null
 }
 
 fun AppCapability.icon(): ImageVector = when (this) {

@@ -12,10 +12,12 @@ class JSCAudioContextInterface(
     override val interf = mapOf(
         "getStatus" to this::getStatus,
         "requestEnable" to this::requestEnable,
+        "triggerInfo" to this::triggerInfo,
         "requestPermission" to this::requestPermission,
         "recentTranscript" to this::recentTranscript,
         "transcriptHistory" to this::transcriptHistory,
         "subscribeTranscript" to this::subscribeTranscript,
+        "subscribeStatus" to this::subscribeStatus,
         "subscribeRawAudio" to this::subscribeRawAudio,
         "unsubscribe" to this::unsubscribe,
     )
@@ -31,6 +33,10 @@ class JSCAudioContextInterface(
             requestEnable(args[0].toString())
             null
         }
+        "triggerInfo" -> {
+            triggerInfo(args[0].toString())
+            null
+        }
         "requestPermission" -> {
             requestPermission(args[0].toString(), args[1].toString())
             null
@@ -43,6 +49,7 @@ class JSCAudioContextInterface(
             transcriptHistory(args[0].toString(), args[1].toString())
             null
         }
+        "subscribeStatus" -> subscribeStatus(args[0].toString())
         "subscribeTranscript" -> subscribeTranscript(args[0].toString(), args[1].toString())
         "subscribeRawAudio" -> subscribeRawAudio(args[0].toString(), args[1].toString())
         "unsubscribe" -> unsubscribe(args[0].toString())

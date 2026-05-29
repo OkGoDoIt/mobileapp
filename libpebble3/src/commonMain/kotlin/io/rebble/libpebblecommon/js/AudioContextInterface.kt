@@ -44,6 +44,8 @@ abstract class AudioContextInterface(
 
     open fun requestEnable(callbackId: String) = bridge.requestEnable(callbackId)
 
+    open fun triggerInfo(callbackId: String) = bridge.triggerInfo(callbackId)
+
     open fun requestPermission(callbackId: String, permissionsJson: String) =
         bridge.requestPermission(callbackId, permissionsJson)
 
@@ -55,6 +57,9 @@ abstract class AudioContextInterface(
 
     open fun subscribeTranscript(callbackId: String, optionsJson: String): String =
         bridge.subscribeTranscript(callbackId, optionsJson)
+
+    open fun subscribeStatus(callbackId: String): String =
+        bridge.subscribeStatus(callbackId)
 
     open fun subscribeRawAudio(callbackId: String, optionsJson: String): String =
         bridge.subscribeRawAudio(callbackId, optionsJson)

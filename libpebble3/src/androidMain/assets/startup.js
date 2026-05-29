@@ -429,6 +429,11 @@ _global._PebbleAudioContextCB = {
                 _PebbleAudioContextCB._resultCallbacks.set(id, callback);
                 _PebbleAudioContext.requestEnable(id);
             },
+            getTriggerInfo: (callback) => {
+                const id = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(id, callback);
+                _PebbleAudioContext.triggerInfo(id);
+            },
             requestPermission: (permissions, callback) => {
                 const id = _PebbleAudioContextCB._createCallbackId();
                 _PebbleAudioContextCB._resultCallbacks.set(id, callback);
@@ -463,6 +468,31 @@ _global._PebbleAudioContextCB = {
                 _PebbleAudioContext.subscribeTranscript(setupId, JSON.stringify(options || {}));
                 return () => {
                     if (subscriptionId) {
+                        _PebbleAudioContextCB._eventCallbacks.delete(subscriptionId);
+                        _PebbleAudioContext.unsubscribe(subscriptionId);
+                    }
+                };
+            },
+            onStatus: (handler) => {
+                let subscriptionId = null;
+                const setupId = _PebbleAudioContextCB._createCallbackId();
+                _PebbleAudioContextCB._resultCallbacks.set(setupId, {
+                    success: (payload) => {
+                        subscriptionId = payload.subscriptionId;
+                        _PebbleAudioContextCB._eventCallbacks.set(subscriptionId, (event) => {
+                            handler(event.status);
+                        });
+                    },
+                    error: (payload) => {
+                        if (handler && typeof handler.onError === 'function') {
+                            handler.onError(payload);
+                        }
+                    },
+                });
+                _PebbleAudioContext.subscribeStatus(setupId);
+                return () => {
+                    if (subscriptionId) {
+                        _PebbleAudioContextCB._eventCallbacks.delete(subscriptionId);
                         _PebbleAudioContext.unsubscribe(subscriptionId);
                     }
                 };
@@ -484,6 +514,7 @@ _global._PebbleAudioContextCB = {
                 _PebbleAudioContext.subscribeRawAudio(setupId, JSON.stringify(options || {}));
                 return () => {
                     if (subscriptionId) {
+                        _PebbleAudioContextCB._eventCallbacks.delete(subscriptionId);
                         _PebbleAudioContext.unsubscribe(subscriptionId);
                     }
                 };

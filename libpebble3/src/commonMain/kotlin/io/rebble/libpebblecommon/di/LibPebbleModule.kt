@@ -607,6 +607,7 @@ fun initKoin(
                             protocolHandler = get(),
                             provider = get(),
                             watchScope = get(),
+                            runningAppUuid = { get<AppRunStateService>().runningApp.value },
                         )
                     }
 

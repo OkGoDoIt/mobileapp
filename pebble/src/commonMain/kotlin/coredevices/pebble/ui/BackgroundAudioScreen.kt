@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,8 @@ import coredevices.pebble.services.backgroundaudio.BackgroundAudioSegmentMetadat
 import coredevices.pebble.services.backgroundaudio.TranscriptionStatus
 import io.rebble.libpebblecommon.connection.ConnectedPebbleDevice
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamState
+import io.rebble.libpebblecommon.database.dao.AppDataAccessLogDao
+import io.rebble.libpebblecommon.database.entity.AppDataAccessLog
 import io.rebble.libpebblecommon.database.entity.BoolWatchPref
 import io.rebble.libpebblecommon.packets.ProtocolCapsFlag
 import org.koin.compose.koinInject
@@ -41,6 +44,7 @@ import kotlin.time.Duration.Companion.milliseconds
 fun BackgroundAudioScreen(navBarNav: NavBarNav, topBarParams: TopBarParams) {
     val viewModel: BackgroundAudioViewModel = koinViewModel()
     val platform = koinInject<Platform>()
+    val accessLogDao = koinInject<AppDataAccessLogDao>()
     val uiState by viewModel.uiState.collectAsState()
     val libPebble = rememberLibPebble()
     val watches by libPebble.watches.collectAsState()
@@ -54,6 +58,12 @@ fun BackgroundAudioScreen(navBarNav: NavBarNav, topBarParams: TopBarParams) {
         ?.value as? Boolean ?: false
     val watchSupported = connectedWatch?.watchInfo?.capabilities
         ?.contains(ProtocolCapsFlag.SupportsBackgroundAudioStreaming) == true
+    val activeAccess by produceState<List<AppDataAccessLog>>(emptyList(), uiState) {
+        value = accessLogDao.active()
+    }
+    val recentAccess by produceState<List<AppDataAccessLog>>(emptyList(), uiState) {
+        value = accessLogDao.recent(limit = 5)
+    }
 
     LaunchedEffect(Unit) {
         topBarParams.title("Background Audio")
@@ -113,6 +123,23 @@ fun BackgroundAudioScreen(navBarNav: NavBarNav, topBarParams: TopBarParams) {
                 trailingContent = {
                     TextButton(onClick = { viewModel.retryFailedTranscriptions() }) {
                         Text("Retry Failed")
+                    }
+                },
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text("App Access") },
+                supportingContent = {
+                    Column {
+                        Text("${activeAccess.size} active audio subscription${if (activeAccess.size == 1) "" else "s"}")
+                        if (recentAccess.isEmpty()) {
+                            Text("No recent SDK audio access")
+                        } else {
+                            recentAccess.forEach { log ->
+                                Text("${log.dataType}: ${log.sourceSummary ?: log.accessMode.name}")
+                            }
+                        }
                     }
                 },
             )

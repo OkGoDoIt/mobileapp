@@ -7,6 +7,7 @@ import io.rebble.libpebblecommon.audiocontext.AudioContextRawAudioChunk
 import io.rebble.libpebblecommon.audiocontext.AudioContextRawAudioOptions
 import io.rebble.libpebblecommon.audiocontext.AudioContextStatus
 import io.rebble.libpebblecommon.audiocontext.AudioContextSubscriptionOptions
+import io.rebble.libpebblecommon.audiocontext.AudioContextTriggerMetadata
 import io.rebble.libpebblecommon.audiocontext.AudioContextTranscriptSegment
 import io.rebble.libpebblecommon.audiocontext.AudioContextPermissionException
 import kotlinx.atomicfu.atomic
@@ -55,6 +56,14 @@ class AudioContextBridge(
         }
     }
 
+    fun triggerInfo(callbackId: String) {
+        scope.launch {
+            runCatching { provider.triggerInfo(appUuid) }
+                .onSuccess { signalResult(callbackId, json.encodeToString(TriggerInfoPayload.from(it))) }
+                .onFailure { signalResult(callbackId, errorPayload(it)) }
+        }
+    }
+
     fun requestPermission(callbackId: String, permissionsJson: String) {
         scope.launch {
             val permissions = parsePermissions(permissionsJson)
@@ -89,6 +98,24 @@ class AudioContextBridge(
             runCatching {
                 provider.liveTranscript(appUuid, options).collect { segment ->
                     signalEvent(subscriptionId, json.encodeToString(EventPayload.from(segment)))
+                }
+            }.onFailure {
+                signalResult(callbackId, errorPayload(it))
+            }
+        }
+        subscriptionJobs[subscriptionId] = job
+        scope.launch {
+            signalResult(callbackId, json.encodeToString(SubscriptionPayload(subscriptionId)))
+        }
+        return subscriptionId
+    }
+
+    fun subscribeStatus(callbackId: String): String {
+        val subscriptionId = nextSubscriptionId().toString()
+        val job = scope.launch {
+            runCatching {
+                provider.statusUpdates(appUuid).collect { status ->
+                    signalEvent(subscriptionId, json.encodeToString(StatusEventPayload.from(status)))
                 }
             }.onFailure {
                 signalResult(callbackId, errorPayload(it))
@@ -209,6 +236,34 @@ class AudioContextBridge(
 
     @Serializable
     private data class ErrorPayload(val availability: String, val message: String)
+
+    @Serializable
+    private data class StatusEventPayload(val status: StatusPayload) {
+        companion object {
+            fun from(status: AudioContextStatus) = StatusEventPayload(StatusPayload.from(status))
+        }
+    }
+
+    @Serializable
+    private data class TriggerInfoPayload(
+        val launchReason: String,
+        val triggerTimestampEpochMs: Long?,
+        val sourceType: String?,
+        val sourceAction: String?,
+        val button: String?,
+        val args: Long?,
+    ) {
+        companion object {
+            fun from(trigger: AudioContextTriggerMetadata) = TriggerInfoPayload(
+                launchReason = trigger.launchReason,
+                triggerTimestampEpochMs = trigger.triggerTimestampEpochMs,
+                sourceType = trigger.sourceType,
+                sourceAction = trigger.sourceAction,
+                button = trigger.button,
+                args = trigger.args,
+            )
+        }
+    }
 
     @Serializable
     private data class TranscriptPayload(val segments: List<SegmentPayload>) {

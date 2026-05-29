@@ -12,7 +12,9 @@ import io.rebble.libpebblecommon.audiocontext.AudioContextRawAudioChunk
 import io.rebble.libpebblecommon.audiocontext.AudioContextRawAudioOptions
 import io.rebble.libpebblecommon.audiocontext.AudioContextStatus
 import io.rebble.libpebblecommon.audiocontext.AudioContextSubscriptionOptions
+import io.rebble.libpebblecommon.audiocontext.AudioContextTriggerMetadata
 import io.rebble.libpebblecommon.audiocontext.AudioContextTranscriptSegment
+import kotlinx.coroutines.delay
 import io.rebble.libpebblecommon.database.entity.AppDataAccessType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -41,14 +43,44 @@ class PebbleAudioContextBroker(
             (error as? AudioContextPermissionException)?.availability ?: AudioContextAvailability.Error
         }
         val snapshot = backgroundAudioRepository.snapshot()
+        val hasOpenStream = snapshot.segments.any { it.endedAtEpochMs == null }
         return AudioContextStatus(
             availability = availability,
-            backgroundAudioEnabled = availability == AudioContextAvailability.Available,
-            streamState = "unknown",
+            backgroundAudioEnabled = hasOpenStream || snapshot.segments.isNotEmpty(),
+            streamState = when {
+                hasOpenStream -> "receiving"
+                snapshot.segments.isNotEmpty() -> "idle"
+                else -> "not_receiving"
+            },
             transcriptionEnabled = true,
             storageState = snapshot.storageState.name,
             currentLiveSubscribers = liveSubscribers,
             currentRawSubscribers = rawAudioFanout.subscriberCount,
+        )
+    }
+
+    override fun statusUpdates(appUuid: Uuid): Flow<AudioContextStatus> = flow {
+        var previous: AudioContextStatus? = null
+        while (true) {
+            val next = status(appUuid)
+            if (next != previous) {
+                emit(next)
+                previous = next
+            }
+            delay(1.seconds)
+        }
+    }
+
+    override suspend fun triggerInfo(appUuid: Uuid): AudioContextTriggerMetadata {
+        permissionChecker.require(appUuid, AudioContextPermission.Status)
+        val latestSegment = backgroundAudioRepository.snapshot().segments.maxByOrNull { it.startedAtEpochMs }
+        return AudioContextTriggerMetadata(
+            launchReason = "unknown",
+            triggerTimestampEpochMs = latestSegment?.startedAtEpochMs,
+            sourceType = latestSegment?.sourceType ?: "watch",
+            sourceAction = latestSegment?.closedReason?.name,
+            button = null,
+            args = null,
         )
     }
 

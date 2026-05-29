@@ -2,6 +2,7 @@ package io.rebble.libpebblecommon.audiocontext
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlin.uuid.Uuid
 
 class NoOpAudioContextProvider(
@@ -15,6 +16,17 @@ class NoOpAudioContextProvider(
         storageState = "unavailable",
         currentLiveSubscribers = 0,
         currentRawSubscribers = 0,
+    )
+
+    override fun statusUpdates(appUuid: Uuid): Flow<AudioContextStatus> = flowOf(statusForNoOp())
+
+    override suspend fun triggerInfo(appUuid: Uuid): AudioContextTriggerMetadata = AudioContextTriggerMetadata(
+        launchReason = "unknown",
+        triggerTimestampEpochMs = null,
+        sourceType = null,
+        sourceAction = null,
+        button = null,
+        args = null,
     )
 
     override suspend fun requestEnablePrompt(appUuid: Uuid): AudioContextPromptResult =
@@ -44,4 +56,14 @@ class NoOpAudioContextProvider(
         appUuid: Uuid,
         options: AudioContextRawAudioOptions,
     ): Flow<AudioContextRawAudioChunk> = emptyFlow()
+
+    private fun statusForNoOp() = AudioContextStatus(
+        availability = availability,
+        backgroundAudioEnabled = false,
+        streamState = "unsupported",
+        transcriptionEnabled = false,
+        storageState = "unavailable",
+        currentLiveSubscribers = 0,
+        currentRawSubscribers = 0,
+    )
 }

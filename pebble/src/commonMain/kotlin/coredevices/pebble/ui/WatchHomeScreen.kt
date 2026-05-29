@@ -103,6 +103,10 @@ import coredevices.libindex.device.InterviewedIndexDevice
 import coredevices.pebble.PebbleDeepLinkHandler
 import coredevices.pebble.Platform
 import coredevices.pebble.rememberLibPebble
+import coredevices.pebble.services.audiocontext.AudioContextPromptController
+import coredevices.pebble.services.audiocontext.AudioContextPromptKind
+import coredevices.pebble.services.audiocontext.AudioContextPromptRequest
+import coredevices.pebble.services.audiocontext.toLockerPermission
 import coredevices.ui.M3Dialog
 import coredevices.util.CoreConfigFlow
 import coredevices.util.CoreConfigHolder
@@ -116,6 +120,9 @@ import io.rebble.libpebblecommon.connection.KnownPebbleDevice
 import io.rebble.libpebblecommon.connection.LibPebble
 import io.rebble.libpebblecommon.connection.PebbleDevice
 import io.rebble.libpebblecommon.connection.UNKNOWN_WATCH_SERIAL_OR_VERSION
+import io.rebble.libpebblecommon.database.dao.LockerAppPermissionDao
+import io.rebble.libpebblecommon.database.entity.LockerAppPermission
+import io.rebble.libpebblecommon.audiocontext.AudioContextPromptResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -195,6 +202,97 @@ class WatchHomeViewModel(
     fun setHidden(hidden: Boolean) {
         hiddenFlow.value = hidden
     }
+}
+
+@Composable
+private fun AudioContextPromptHost(nav: NavBarNav) {
+    val promptController: AudioContextPromptController = koinInject()
+    val permissionDao: LockerAppPermissionDao = koinInject()
+    val scope = rememberCoroutineScope()
+    var prompt by remember { mutableStateOf<AudioContextPromptRequest?>(null) }
+
+    LaunchedEffect(promptController) {
+        promptController.requests.collect { request ->
+            prompt?.completion?.complete(AudioContextPromptResult.Dismissed)
+            prompt = request
+        }
+    }
+
+    val currentPrompt = prompt ?: return
+    val title = when (currentPrompt.kind) {
+        AudioContextPromptKind.EnableBackgroundAudio -> "Enable Background Audio?"
+        AudioContextPromptKind.GrantPermission -> "Allow Audio Access?"
+    }
+    val body = when (currentPrompt.kind) {
+        AudioContextPromptKind.EnableBackgroundAudio ->
+            "This app needs Background Audio to be enabled before it can read audio context."
+        AudioContextPromptKind.GrantPermission -> {
+            val permissions = currentPrompt.permissions.joinToString { it.toLockerPermission().displayName() }
+            val rawWarning = if (currentPrompt.permissions.any { it.toLockerPermission().name == "AudioRaw" }) {
+                "\n\nRaw audio can include sensitive sound nearby. Only allow apps you trust."
+            } else {
+                ""
+            }
+            "Allow this app to access $permissions?$rawWarning"
+        }
+    }
+
+    M3Dialog(
+        onDismissRequest = {
+            currentPrompt.completion.complete(AudioContextPromptResult.Dismissed)
+            prompt = null
+        },
+        title = { Text(title) },
+        buttons = {
+            TextButton(onClick = {
+                currentPrompt.completion.complete(AudioContextPromptResult.Denied)
+                prompt = null
+            }) {
+                Text("Don't Allow")
+            }
+            Spacer(Modifier.width(8.dp))
+            TextButton(onClick = {
+                scope.launch {
+                    when (currentPrompt.kind) {
+                        AudioContextPromptKind.EnableBackgroundAudio -> {
+                            nav.navigateTo(PebbleNavBarRoutes.BackgroundAudioRoute)
+                            currentPrompt.completion.complete(AudioContextPromptResult.Granted)
+                        }
+                        AudioContextPromptKind.GrantPermission -> {
+                            currentPrompt.permissions.forEach { permission ->
+                                permissionDao.insertOrReplace(
+                                    LockerAppPermission(
+                                        appUuid = currentPrompt.appUuid,
+                                        permission = permission.toLockerPermission(),
+                                        granted = true,
+                                    ),
+                                )
+                            }
+                            currentPrompt.completion.complete(AudioContextPromptResult.Granted)
+                        }
+                    }
+                    prompt = null
+                }
+            }) {
+                Text(
+                    when (currentPrompt.kind) {
+                        AudioContextPromptKind.EnableBackgroundAudio -> "Open Settings"
+                        AudioContextPromptKind.GrantPermission -> "Allow"
+                    },
+                )
+            }
+        },
+    ) {
+        Text(body)
+    }
+}
+
+private fun io.rebble.libpebblecommon.database.entity.LockerAppPermissionType.displayName(): String = when (this) {
+    io.rebble.libpebblecommon.database.entity.LockerAppPermissionType.Location -> "Location"
+    io.rebble.libpebblecommon.database.entity.LockerAppPermissionType.AudioStatus -> "Audio Status"
+    io.rebble.libpebblecommon.database.entity.LockerAppPermissionType.AudioTranscript -> "Audio Transcript"
+    io.rebble.libpebblecommon.database.entity.LockerAppPermissionType.AudioHistory -> "Audio History"
+    io.rebble.libpebblecommon.database.entity.LockerAppPermissionType.AudioRaw -> "Raw Audio"
 }
 
 data class Params(
@@ -417,6 +515,21 @@ fun WatchHomeScreen(
                 }
             }
         }
+
+        AudioContextPromptHost(nav = object : NavBarNav {
+            override fun navigateTo(route: CoreRoute) = coreNav.navigateTo(route)
+            override fun navigateTo(route: NavBarRoute) {
+                val tab = when (route) {
+                    is PebbleNavBarRoutes.BackgroundAudioRoute -> WatchHomeNavTab.Settings
+                    else -> currentTab
+                }
+                viewModel.selectedTab.value = tab
+                navControllers[tab]?.navigate(route)
+            }
+            override fun goBack() {
+                pebbleNavHostController.popBackStack()
+            }
+        })
 
         val watchesFlow = remember {
             libPebble.watches

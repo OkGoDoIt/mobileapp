@@ -16,6 +16,9 @@ class WebViewAudioContextInterface(
     override fun requestEnable(callbackId: String) = super.requestEnable(callbackId)
 
     @JavascriptInterface
+    override fun triggerInfo(callbackId: String) = super.triggerInfo(callbackId)
+
+    @JavascriptInterface
     override fun requestPermission(callbackId: String, permissionsJson: String) =
         super.requestPermission(callbackId, permissionsJson)
 
@@ -30,6 +33,10 @@ class WebViewAudioContextInterface(
     @JavascriptInterface
     override fun subscribeTranscript(callbackId: String, optionsJson: String): String =
         super.subscribeTranscript(callbackId, optionsJson)
+
+    @JavascriptInterface
+    override fun subscribeStatus(callbackId: String): String =
+        super.subscribeStatus(callbackId)
 
     @JavascriptInterface
     override fun subscribeRawAudio(callbackId: String, optionsJson: String): String =

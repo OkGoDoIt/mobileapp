@@ -6,6 +6,10 @@ import kotlin.uuid.Uuid
 interface AudioContextProvider {
     suspend fun status(appUuid: Uuid): AudioContextStatus
 
+    fun statusUpdates(appUuid: Uuid): Flow<AudioContextStatus>
+
+    suspend fun triggerInfo(appUuid: Uuid): AudioContextTriggerMetadata
+
     suspend fun requestEnablePrompt(appUuid: Uuid): AudioContextPromptResult
 
     suspend fun requestPermissionPrompt(
