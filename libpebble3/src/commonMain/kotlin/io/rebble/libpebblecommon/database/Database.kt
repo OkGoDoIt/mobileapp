@@ -10,6 +10,7 @@ import androidx.room.migration.AutoMigrationSpec
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.rebble.libpebblecommon.connection.AppContext
 import io.rebble.libpebblecommon.database.dao.CalendarDao
+import io.rebble.libpebblecommon.database.dao.AppDataAccessLogDao
 import io.rebble.libpebblecommon.database.dao.ContactDao
 import io.rebble.libpebblecommon.database.dao.HealthDao
 import io.rebble.libpebblecommon.database.dao.KnownWatchDao
@@ -27,6 +28,7 @@ import io.rebble.libpebblecommon.database.dao.WeatherAppRealDao
 import io.rebble.libpebblecommon.database.entity.AppPrefsEntryDao
 import io.rebble.libpebblecommon.database.entity.AppPrefsEntryEntity
 import io.rebble.libpebblecommon.database.entity.AppPrefsEntrySyncEntity
+import io.rebble.libpebblecommon.database.entity.AppDataAccessLog
 import io.rebble.libpebblecommon.database.entity.CalendarEntity
 import io.rebble.libpebblecommon.database.entity.ContactEntity
 import io.rebble.libpebblecommon.database.entity.HealthDataEntity
@@ -93,8 +95,9 @@ internal const val DATABASE_FILENAME = "libpebble3.db"
         AppPrefsEntryEntity::class,
         AppPrefsEntrySyncEntity::class,
         NotificationRuleEntity::class,
+        AppDataAccessLog::class,
     ],
-    version = 36,
+    version = 37,
     autoMigrations = [
         AutoMigration(from = 10, to = 11),
         AutoMigration(from = 11, to = 12),
@@ -122,6 +125,7 @@ internal const val DATABASE_FILENAME = "libpebble3.db"
         AutoMigration(from = 33, to = 34),
         AutoMigration(from = 34, to = 35),
         AutoMigration(from = 35, to = 36),
+        AutoMigration(from = 36, to = 37),
     ],
     exportSchema = true,
 )
@@ -146,6 +150,7 @@ abstract class Database : RoomDatabase() {
     abstract fun weatherAppDao(): WeatherAppRealDao
     abstract fun appPrefsDao(): AppPrefsEntryDao
     abstract fun notificationRuleDao(): NotificationRuleDao
+    abstract fun appDataAccessLogDao(): AppDataAccessLogDao
 }
 
 @DeleteTable(tableName = "WatchSettingsEntity")

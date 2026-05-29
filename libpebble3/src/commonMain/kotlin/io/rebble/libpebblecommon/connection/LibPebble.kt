@@ -8,6 +8,7 @@ import io.rebble.libpebblecommon.ErrorTracker
 import io.rebble.libpebblecommon.Housekeeping
 import io.rebble.libpebblecommon.LibPebbleConfig
 import io.rebble.libpebblecommon.LibPebbleConfigHolder
+import io.rebble.libpebblecommon.audiocontext.NoOpAudioContextProvider
 import io.rebble.libpebblecommon.calendar.PhoneCalendarSyncer
 import io.rebble.libpebblecommon.calls.Call
 import io.rebble.libpebblecommon.calls.LegacyPhoneReceiver
@@ -40,6 +41,7 @@ import io.rebble.libpebblecommon.di.LibPebbleCoroutineScope
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.VoiceSessionHandler
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.NoOpBackgroundAudioStreamHandler
 import io.rebble.libpebblecommon.di.BackgroundAudioHandlerFactory
+import io.rebble.libpebblecommon.di.AudioContextProviderFactory
 import io.rebble.libpebblecommon.di.initKoin
 import io.rebble.libpebblecommon.health.Health
 import io.rebble.libpebblecommon.health.HealthDebugStats
@@ -513,6 +515,7 @@ class LibPebble3(
             injectedPKJSHttpInterceptors: InjectedPKJSHttpInterceptors = InjectedPKJSHttpInterceptors(emptyList()),
             voiceSessionHandlers: List<VoiceSessionHandler> = emptyList(),
             backgroundAudioHandlerFactory: BackgroundAudioHandlerFactory = { NoOpBackgroundAudioStreamHandler },
+            audioContextProviderFactory: AudioContextProviderFactory = { NoOpAudioContextProvider() },
         ): LibPebble {
             koin = initKoin(
                 defaultConfig,
@@ -524,6 +527,7 @@ class LibPebble3(
                 injectedPKJSHttpInterceptors,
                 voiceSessionHandlers,
                 backgroundAudioHandlerFactory,
+                audioContextProviderFactory,
             )
             val libPebble = koin.get<LibPebble>()
             return libPebble

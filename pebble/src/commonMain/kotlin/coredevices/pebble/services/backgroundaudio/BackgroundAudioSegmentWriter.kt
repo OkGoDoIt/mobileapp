@@ -1,6 +1,8 @@
 package coredevices.pebble.services.backgroundaudio
 
 import coredevices.pebble.services.SpeexFrameDecoder
+import io.rebble.libpebblecommon.audiocontext.AudioContextRawAudioChunk
+import io.rebble.libpebblecommon.audiocontext.AudioContextRawEncoding
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioFrameBatch
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioStreamConfig
 import io.rebble.libpebblecommon.voice.VoiceEncoderInfo
@@ -18,6 +20,7 @@ class BackgroundAudioSegmentWriter(
     private val watchIdentifier: String,
     private val segmentDurationSeconds: Int = 30,
     private val speexDecoderFactory: (VoiceEncoderInfo.Speex) -> SpeexFrameDecoder,
+    private val rawPcmConsumer: ((AudioContextRawAudioChunk) -> Unit)? = null,
 ) {
     private var config: BackgroundAudioStreamConfig? = null
     private var decoder: SpeexFrameDecoder? = null
@@ -57,6 +60,20 @@ class BackgroundAudioSegmentWriter(
         SystemFileSystem.sink(pcmPath, append = true).buffered().use { sink ->
             batch.frames.forEachIndexed { index, frame ->
                 val pcm = dec.decode(frame)
+                rawPcmConsumer?.invoke(
+                    AudioContextRawAudioChunk(
+                        streamId = config!!.streamId.toLong(),
+                        sequenceStart = batch.firstSequence.toLong() + index,
+                        sampleIndexStart = batch.firstSampleIndex.toLong() +
+                            (index * config!!.frameSamples.toLong()),
+                        timestampEpochMs = null,
+                        sampleRateHz = config!!.sampleRateHz.toInt(),
+                        channels = config!!.channels.toInt(),
+                        encoding = AudioContextRawEncoding.Pcm16Le,
+                        bytes = pcm,
+                        gapCountSinceLastChunk = segment.gapCount,
+                    ),
+                )
                 sink.write(pcm)
                 segment.bytesWritten += pcm.size
                 segment.lastSequence = batch.firstSequence.toLong() + index

@@ -5,6 +5,8 @@ import com.russhwolf.settings.Settings
 import io.rebble.libpebblecommon.database.dao.HealthSettingsEntryRealDao
 import io.rebble.libpebblecommon.database.entity.HealthSettingsEntryDao
 import io.ktor.client.HttpClient
+import io.rebble.libpebblecommon.audiocontext.AudioContextProvider
+import io.rebble.libpebblecommon.audiocontext.NoOpAudioContextProvider
 import io.rebble.libpebblecommon.BleConfigFlow
 import io.rebble.libpebblecommon.ErrorTracker
 import io.rebble.libpebblecommon.Housekeeping
@@ -313,6 +315,7 @@ internal interface LibPebbleKoinComponent : KoinComponent {
 }
 
 typealias BackgroundAudioHandlerFactory = (PebbleIdentifier) -> BackgroundAudioStreamHandler
+typealias AudioContextProviderFactory = (Database) -> AudioContextProvider
 
 fun initKoin(
     defaultConfig: LibPebbleConfig,
@@ -324,6 +327,7 @@ fun initKoin(
     injectedPKJSHttpInterceptors: InjectedPKJSHttpInterceptors,
     voiceSessionHandlers: List<VoiceSessionHandler> = emptyList(),
     backgroundAudioHandlerFactory: BackgroundAudioHandlerFactory = { NoOpBackgroundAudioStreamHandler },
+    audioContextProviderFactory: AudioContextProviderFactory = { NoOpAudioContextProvider() },
 ): Koin {
     val koin = LibPebbleKoinContext.koin
     val libPebbleScope = LibPebbleCoroutineScope(CoroutineName("libpebble3"))
@@ -358,6 +362,8 @@ fun initKoin(
                 single { get<Database>().calendarDao() }
                 single { get<Database>().healthSettingsDao() } binds arrayOf(HealthSettingsEntryDao::class, HealthSettingsEntryRealDao::class)
                 single { get<Database>().lockerAppPermissionDao() }
+                single { get<Database>().appDataAccessLogDao() }
+                single<AudioContextProvider> { audioContextProviderFactory(get()) }
                 single { get<Database>().notificationsDao() }
                 single { get<Database>().contactDao() }
                 single { get<Database>().vibePatternDao() }

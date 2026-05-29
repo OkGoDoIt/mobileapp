@@ -1,6 +1,7 @@
 package coredevices.pebble.services.backgroundaudio
 
 import co.touchlab.kermit.Logger
+import coredevices.pebble.services.audiocontext.AudioContextRawAudioFanout
 import coredevices.pebble.services.PebbleSpeexFrameDecoder
 import coredevices.pebble.services.SpeexFrameDecoder
 import io.rebble.libpebblecommon.connection.endpointmanager.audio.background.BackgroundAudioFrameBatch
@@ -23,6 +24,7 @@ class PebbleBackgroundAudioHandler(
     private val segmentStore: BackgroundAudioSegmentStore = BackgroundAudioSegmentStore(),
     private val transcriptionCoordinator: ContinuousTranscriptionCoordinator? = null,
     private val retentionManager: BackgroundAudioRetentionManager? = null,
+    private val rawAudioFanout: AudioContextRawAudioFanout? = null,
     private val speexDecoderFactory: (VoiceEncoderInfo.Speex) -> SpeexFrameDecoder =
         { PebbleSpeexFrameDecoder(it) },
 ) : BackgroundAudioStreamHandler, BackgroundAudioCheckpointSource, BackgroundAudioReceiverHealthSource {
@@ -39,6 +41,7 @@ class PebbleBackgroundAudioHandler(
             store = segmentStore,
             watchIdentifier = watchIdentifier,
             speexDecoderFactory = speexDecoderFactory,
+            rawPcmConsumer = rawAudioFanout?.let { fanout -> { chunk -> fanout.publish(chunk) } },
         ).also { it.beginStream(config) }
         logger.i { "Background stream started id=${config.streamId}" }
     }

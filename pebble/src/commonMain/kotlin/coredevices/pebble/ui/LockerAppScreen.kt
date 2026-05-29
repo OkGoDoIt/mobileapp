@@ -889,18 +889,30 @@ fun PermissionItem(permission: AppCapability, entry: CommonApp, topBarParams: To
 fun AppCapability.icon(): ImageVector = when (this) {
     AppCapability.Health -> Icons.Default.HealthAndSafety
     AppCapability.Location -> Icons.Default.LocationSearching
+    AppCapability.AudioStatus -> Icons.Default.PlayCircle
+    AppCapability.AudioTranscript -> Icons.Default.PlayCircle
+    AppCapability.AudioHistory -> Icons.Default.PlayCircle
+    AppCapability.AudioRaw -> Icons.Default.PlayCircle
     AppCapability.Timeline -> Icons.Default.LocationOn
 }
 
 fun AppCapability.name(): String = when (this) {
     AppCapability.Health -> "Health"
     AppCapability.Location -> "Location"
+    AppCapability.AudioStatus -> "Audio Status"
+    AppCapability.AudioTranscript -> "Audio Transcript"
+    AppCapability.AudioHistory -> "Audio History"
+    AppCapability.AudioRaw -> "Raw Audio"
     AppCapability.Timeline -> "Timeline"
 }
 
 fun AppCapability.description(): String = when (this) {
     AppCapability.Health -> "Can access health data"
     AppCapability.Location -> "Can access location"
+    AppCapability.AudioStatus -> "Can check background audio availability"
+    AppCapability.AudioTranscript -> "Can read recent audio transcripts"
+    AppCapability.AudioHistory -> "Can read transcript history"
+    AppCapability.AudioRaw -> "Can receive raw audio on the phone"
     AppCapability.Timeline -> "Can create timeline pins"
 }
 

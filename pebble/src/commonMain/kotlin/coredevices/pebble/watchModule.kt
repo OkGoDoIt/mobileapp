@@ -24,6 +24,12 @@ import coredevices.pebble.services.AppstoreService
 import coredevices.pebble.services.AppstoreSourceInitializer
 import coredevices.pebble.services.CactusTranscription
 import coredevices.pebble.services.WatchIndexMemoVoiceSessionHandler
+import coredevices.pebble.services.audiocontext.AudioContextAccessAuditor
+import coredevices.pebble.services.audiocontext.AudioContextPermissionChecker
+import coredevices.pebble.services.audiocontext.AudioContextPromptController
+import coredevices.pebble.services.audiocontext.AudioContextRawAudioFanout
+import coredevices.pebble.services.audiocontext.AudioContextTranscriptQuery
+import coredevices.pebble.services.audiocontext.PebbleAudioContextBroker
 import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioScope
 import coredevices.pebble.services.backgroundaudio.BackgroundAudioRetentionManager
@@ -119,6 +125,10 @@ val watchModule = module {
         val backgroundAudioSegmentStore = get<BackgroundAudioSegmentStore>()
         val continuousTranscriptionCoordinator = get<ContinuousTranscriptionCoordinator>()
         val backgroundAudioRetentionManager = get<BackgroundAudioRetentionManager>()
+        val backgroundAudioRepository = get<BackgroundAudioRepository>()
+        val rawAudioFanout = get<AudioContextRawAudioFanout>()
+        val promptController = get<AudioContextPromptController>()
+        val platform = get<Platform>()
         LibPebble3.create(
             get(),
             get(),
@@ -138,6 +148,22 @@ val watchModule = module {
                     segmentStore = backgroundAudioSegmentStore,
                     transcriptionCoordinator = continuousTranscriptionCoordinator,
                     retentionManager = backgroundAudioRetentionManager,
+                    rawAudioFanout = rawAudioFanout,
+                )
+            },
+            audioContextProviderFactory = { database ->
+                PebbleAudioContextBroker(
+                    permissionChecker = AudioContextPermissionChecker(
+                        permissionDao = database.lockerAppPermissionDao(),
+                        lockerEntryDao = database.lockerEntryDao(),
+                    ),
+                    accessAuditor = AudioContextAccessAuditor(database.appDataAccessLogDao()),
+                    transcriptQuery = AudioContextTranscriptQuery(backgroundAudioSegmentStore),
+                    rawAudioFanout = rawAudioFanout,
+                    promptController = promptController,
+                    backgroundAudioRepository = backgroundAudioRepository,
+                    transcriptionCoordinator = continuousTranscriptionCoordinator,
+                    phoneSupported = platform == Platform.Android,
                 )
             },
         )
@@ -162,6 +188,8 @@ val watchModule = module {
     single { BackgroundAudioTranscriptionPolicy() }
     single { BackgroundAudioScope(CoroutineScope(Dispatchers.IO + SupervisorJob())) }
     singleOf(::ContinuousTranscriptionCoordinator)
+    singleOf(::AudioContextPromptController)
+    singleOf(::AudioContextRawAudioFanout)
     single { FirestoreLockerDao { get() } }
     single { FirestoreKnownWatchesDao { get() } }
     single { HealthManagerFactory().createManager() }

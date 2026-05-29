@@ -13,5 +13,9 @@ data class LockerAppPermission(
 )
 
 enum class LockerAppPermissionType {
-    Location
+    Location,
+    AudioStatus,
+    AudioTranscript,
+    AudioHistory,
+    AudioRaw,
 }

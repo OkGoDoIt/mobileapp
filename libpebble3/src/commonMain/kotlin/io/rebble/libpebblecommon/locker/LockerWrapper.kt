@@ -20,6 +20,10 @@ enum class AppType(val code: String) {
 enum class AppCapability(val code: String) {
     Health("health"),
     Location("location"),
+    AudioStatus("audio_status"),
+    AudioTranscript("audio_transcript"),
+    AudioHistory("audio_history"),
+    AudioRaw("audio_raw"),
     Timeline("timeline"),
     // Not included: "configurable" (separate field in database, doesn't require permission grant)
     ;

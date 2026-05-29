@@ -8,6 +8,9 @@ import coredevices.util.transcription.STTLanguage
 import coredevices.util.transcription.TranscriptionException
 import coredevices.util.transcription.TranscriptionService
 import coredevices.util.transcription.TranscriptionSessionStatus
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlin.time.Clock
@@ -31,6 +34,8 @@ class ContinuousTranscriptionCoordinator(
     maxConcurrency = 1,
 ) {
     private val logger = Logger.withTag("BgAudioTranscription")
+    private val _transcripts = MutableSharedFlow<BackgroundAudioTranscript>(extraBufferCapacity = 8)
+    val transcripts: SharedFlow<BackgroundAudioTranscript> = _transcripts.asSharedFlow()
 
     fun resumePending() = resumePendingTasks()
 
@@ -164,6 +169,7 @@ class ContinuousTranscriptionCoordinator(
             warnings = warnings,
         )
         val transcriptPath = segmentStore.writeTranscript(transcript)
+        _transcripts.tryEmit(transcript)
         segmentStore.updateMetadata(metadata.segmentId) {
             it.copy(transcriptPath = transcriptPath.toString())
         }
