@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 37,
-    "identityHash": "6c67c91df9d2d9e7a2a2c81f51ac2a74",
+    "identityHash": "d66984d5ad5c6e2ecd79bb0c70ba9a7d",
     "entities": [
       {
         "tableName": "KnownWatchItem",
@@ -685,7 +685,7 @@
       },
       {
         "tableName": "NotificationAppItemEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recordHashcode` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, `sync` INTEGER NOT NULL DEFAULT 1, `packageName` TEXT NOT NULL, `name` TEXT NOT NULL, `muteState` TEXT NOT NULL, `channelGroups` TEXT NOT NULL, `stateUpdated` INTEGER NOT NULL, `lastNotified` INTEGER NOT NULL, `muteExpiration` INTEGER DEFAULT null, `vibePatternName` TEXT DEFAULT null, `colorName` TEXT DEFAULT null, `iconCode` TEXT DEFAULT null, PRIMARY KEY(`packageName`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recordHashcode` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, `sync` INTEGER NOT NULL DEFAULT 1, `packageName` TEXT NOT NULL, `name` TEXT NOT NULL, `muteState` TEXT NOT NULL, `channelGroups` TEXT NOT NULL, `stateUpdated` INTEGER NOT NULL, `lastNotified` INTEGER NOT NULL, `muteExpiration` INTEGER DEFAULT null, `vibePatternName` TEXT DEFAULT null, `colorName` TEXT DEFAULT null, `iconCode` TEXT DEFAULT null, `allowDuplicates` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`packageName`))",
         "fields": [
           {
             "fieldPath": "recordHashcode",
@@ -765,6 +765,13 @@
             "columnName": "iconCode",
             "affinity": "TEXT",
             "defaultValue": "null"
+          },
+          {
+            "fieldPath": "record.allowDuplicates",
+            "columnName": "allowDuplicates",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -1790,108 +1797,11 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_NotificationRuleEntity_targetType_target` ON `${TABLE_NAME}` (`targetType`, `target`)"
           }
         ]
-      },
-      {
-        "tableName": "AppDataAccessLog",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `appUuid` TEXT NOT NULL, `dataType` TEXT NOT NULL, `accessMode` TEXT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, `endedAtEpochMs` INTEGER, `sourceSummary` TEXT, `byteCount` INTEGER, `transcriptSegmentCount` INTEGER, `active` INTEGER NOT NULL, PRIMARY KEY(`id`))",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "appUuid",
-            "columnName": "appUuid",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "dataType",
-            "columnName": "dataType",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "accessMode",
-            "columnName": "accessMode",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "startedAtEpochMs",
-            "columnName": "startedAtEpochMs",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "endedAtEpochMs",
-            "columnName": "endedAtEpochMs",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "sourceSummary",
-            "columnName": "sourceSummary",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "byteCount",
-            "columnName": "byteCount",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "transcriptSegmentCount",
-            "columnName": "transcriptSegmentCount",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "active",
-            "columnName": "active",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [
-          {
-            "name": "index_AppDataAccessLog_appUuid",
-            "unique": false,
-            "columnNames": [
-              "appUuid"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_AppDataAccessLog_appUuid` ON `${TABLE_NAME}` (`appUuid`)"
-          },
-          {
-            "name": "index_AppDataAccessLog_startedAtEpochMs",
-            "unique": false,
-            "columnNames": [
-              "startedAtEpochMs"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_AppDataAccessLog_startedAtEpochMs` ON `${TABLE_NAME}` (`startedAtEpochMs`)"
-          },
-          {
-            "name": "index_AppDataAccessLog_active",
-            "unique": false,
-            "columnNames": [
-              "active"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_AppDataAccessLog_active` ON `${TABLE_NAME}` (`active`)"
-          }
-        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6c67c91df9d2d9e7a2a2c81f51ac2a74')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd66984d5ad5c6e2ecd79bb0c70ba9a7d')"
     ]
   }
 }
