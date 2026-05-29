@@ -9,6 +9,7 @@ import io.rebble.libpebblecommon.audiocontext.AudioContextStatus
 import io.rebble.libpebblecommon.audiocontext.AudioContextSubscriptionOptions
 import io.rebble.libpebblecommon.audiocontext.AudioContextTranscriptSegment
 import io.rebble.libpebblecommon.audiocontext.AudioContextPermissionException
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -31,7 +32,7 @@ class AudioContextBridge(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val subscriptionJobs = mutableMapOf<String, Job>()
-    private var nextSubscriptionId = 1
+    private val nextSubscriptionId = atomic(1)
 
     fun close() {
         subscriptionJobs.values.forEach { it.cancel() }
@@ -127,9 +128,7 @@ class AudioContextBridge(
         } ?: false
     }
 
-    private fun nextSubscriptionId(): Int = synchronized(subscriptionJobs) {
-        nextSubscriptionId++
-    }
+    private fun nextSubscriptionId(): Int = nextSubscriptionId.getAndIncrement()
 
     private fun parsePermissions(permissionsJson: String): Set<AudioContextPermission> {
         if (permissionsJson.isBlank()) {
