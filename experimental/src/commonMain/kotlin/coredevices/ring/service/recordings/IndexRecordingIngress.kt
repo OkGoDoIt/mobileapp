@@ -33,13 +33,13 @@ class IndexRecordingIngress(
     ) {
         logger.i { "Finalizing local recording $fileId ($metadata)" }
         val (source, info) = recordingStorage.openRecordingSource(fileId)
-        val cleanSink = recordingStorage.openCleanRecordingSink(
+        val originalSink = recordingStorage.openOriginalRecordingSink(
             fileId,
             info.cachedMetadata.sampleRate,
             info.cachedMetadata.mimeType,
         )
         source.use { src ->
-            cleanSink.buffered().use { dst ->
+            originalSink.buffered().use { dst ->
                 src.transferTo(dst)
             }
         }
@@ -52,6 +52,6 @@ class IndexRecordingIngress(
     override suspend fun cancelLocalRecording(fileId: String) {
         logger.i { "Cancelling local recording $fileId" }
         recordingStorage.deleteRecordingFromCache(fileId)
-        recordingStorage.deleteRecordingFromCache("$fileId-clean")
+        recordingStorage.deleteRecordingFromCache("$fileId-original")
     }
 }

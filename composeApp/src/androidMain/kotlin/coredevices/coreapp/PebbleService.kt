@@ -14,8 +14,8 @@ import co.touchlab.kermit.Logger
 import coredevices.haversine.KMPHaversineSatelliteManager
 import coredevices.ring.database.Preferences
 import coredevices.ring.service.IndexNotificationManager
-import coredevices.ring.service.PEBBLE_DEBUG_NOTIFICATION_CHANNEL_ID
-import coredevices.ring.service.PEBBLE_DEBUG_NOTIFICATION_CHANNEL_NAME
+import coredevices.ring.service.INDEX_TRANSFER_NOTIFICATION_CHANNEL_ID
+import coredevices.ring.service.INDEX_TRANSFER_NOTIFICATION_CHANNEL_NAME
 import coredevices.ring.service.RecordingBackgroundScope
 import coredevices.ring.service.RingSync
 import coredevices.pebble.services.backgroundaudio.ContinuousTranscriptionCoordinator
@@ -44,7 +44,9 @@ class PebbleService: Service(), KoinComponent {
     }
 
     private val satelliteManager: KMPHaversineSatelliteManager by inject()
-    private lateinit var notificationManagerCompat: NotificationManagerCompat
+    private val notificationManagerCompat: NotificationManagerCompat by lazy {
+        NotificationManagerCompat.from(this)
+    }
     private val scope: RecordingBackgroundScope by inject()
     private var recordingDebugNotificationJob: Job? = null
     private var ringSyncJob: Job? = null
@@ -71,9 +73,9 @@ class PebbleService: Service(), KoinComponent {
         recordingDebugNotificationJob?.cancel()
         recordingDebugNotificationJob = scope.launch {
             val notificationChannel = NotificationChannelCompat.Builder(
-                PEBBLE_DEBUG_NOTIFICATION_CHANNEL_ID,
+                INDEX_TRANSFER_NOTIFICATION_CHANNEL_ID,
                 NotificationManager.IMPORTANCE_DEFAULT)
-                .setName(PEBBLE_DEBUG_NOTIFICATION_CHANNEL_NAME)
+                .setName(INDEX_TRANSFER_NOTIFICATION_CHANNEL_NAME)
                 .build()
             notificationManagerCompat.createNotificationChannel(notificationChannel)
 
@@ -137,7 +139,6 @@ class PebbleService: Service(), KoinComponent {
         if (intent != null) {
             handleIntent(intent)
         }
-        notificationManagerCompat = NotificationManagerCompat.from(this)
         val notificationChannel = NotificationChannelCompat.Builder(
             NOTIFICATION_CHANNEL_ID,
             NotificationManager.IMPORTANCE_MIN)

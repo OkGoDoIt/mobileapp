@@ -685,7 +685,7 @@
       },
       {
         "tableName": "NotificationAppItemEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recordHashcode` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, `sync` INTEGER NOT NULL DEFAULT 1, `packageName` TEXT NOT NULL, `name` TEXT NOT NULL, `muteState` TEXT NOT NULL, `channelGroups` TEXT NOT NULL, `stateUpdated` INTEGER NOT NULL, `lastNotified` INTEGER NOT NULL, `muteExpiration` INTEGER DEFAULT null, `vibePatternName` TEXT DEFAULT null, `colorName` TEXT DEFAULT null, `iconCode` TEXT DEFAULT null, `allowDuplicates` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`packageName`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recordHashcode` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, `sync` INTEGER NOT NULL DEFAULT 1, `packageName` TEXT NOT NULL, `name` TEXT NOT NULL, `muteState` TEXT NOT NULL, `channelGroups` TEXT NOT NULL, `stateUpdated` INTEGER NOT NULL, `lastNotified` INTEGER NOT NULL, `muteExpiration` INTEGER DEFAULT null, `vibePatternName` TEXT DEFAULT null, `colorName` TEXT DEFAULT null, `iconCode` TEXT DEFAULT null, `allowDuplicates` INTEGER NOT NULL DEFAULT 0, `isSystemApp` INTEGER NOT NULL DEFAULT 0, `autoAdded` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`packageName`))",
         "fields": [
           {
             "fieldPath": "recordHashcode",
@@ -769,6 +769,20 @@
           {
             "fieldPath": "record.allowDuplicates",
             "columnName": "allowDuplicates",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "record.isSystemApp",
+            "columnName": "isSystemApp",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "record.autoAdded",
+            "columnName": "autoAdded",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"

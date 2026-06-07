@@ -128,7 +128,7 @@ fun FeedTabContents(
             val fileId = currentFileId ?: return@launch
             currentRecorder?.stopRecording()
             recordingJob?.join()
-            logger.i { "Stopped recording, saving clean copy and queueing: $fileId" }
+            logger.i { "Stopped recording, finalizing original copy and queueing: $fileId" }
             withContext(Dispatchers.IO) {
                 recordingIngress.finalizeLocalRecording(
                     fileId = fileId,
